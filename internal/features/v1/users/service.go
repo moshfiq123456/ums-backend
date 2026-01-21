@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/moshfiq123456/ums-backend/internal/models"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -29,8 +30,8 @@ func (s *Service) Create(ctx context.Context, req CreateUserRequest) (models.Use
 	return s.repo.Create(ctx, user)
 }
 
-func (s *Service) List(ctx context.Context) ([]models.User, error) {
-	return s.repo.List(ctx)
+func (s *Service) List(ctx context.Context, p utils.Pagination) ([]models.User, error) {
+	return s.repo.List(ctx, p.Page, p.Size)
 }
 
 func (s *Service) GetByID(ctx context.Context, id string) (models.User, error) {

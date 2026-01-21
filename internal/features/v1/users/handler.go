@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Handler struct {
@@ -31,13 +32,36 @@ func (h *Handler) CreateUser(c *gin.Context) {
 }
 
 func (h *Handler) ListUsers(c *gin.Context) {
-	users, err := h.service.List(c.Request.Context())
+	var pagination utils.Pagination
+
+	_ = c.ShouldBindQuery(&pagination)
+
+	// ❗ Validation (NO return value)
+	if pagination.Page < 0 || pagination.Size < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid pagination params",
+		})
+		return
+	}
+
+	pagination.Normalize()
+
+	users, err := h.service.List(c.Request.Context(), pagination)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, toResponseList(users))
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": toResponseList(users),
+		"meta": gin.H{
+			"page": pagination.Page,
+			"size": pagination.Size,
+		},
+	})
 }
+
+
 
 func (h *Handler) GetUser(c *gin.Context) {
 	id := c.Param("id")

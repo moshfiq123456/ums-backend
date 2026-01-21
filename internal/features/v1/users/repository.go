@@ -23,12 +23,17 @@ func (r *UserRepository) Create(ctx context.Context, user models.User) (models.U
 }
 
 // LIST
-func (r *UserRepository) List(ctx context.Context) ([]models.User, error) {
+func (r *UserRepository) List(ctx context.Context, page, size int) ([]models.User, error) {
 	var users []models.User
+	offset := (page - 1) * size
+
 	err := r.db.WithContext(ctx).
 		Where("deleted_at IS NULL").
 		Order("created_at DESC").
+		Limit(size).
+		Offset(offset).
 		Find(&users).Error
+
 	return users, err
 }
 

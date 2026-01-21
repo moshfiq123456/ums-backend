@@ -1,19 +1,26 @@
 package users
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
+	"github.com/moshfiq123456/ums-backend/internal/middleware"
 )
 
 // RegisterRoutes registers all user routes
 func RegisterRoutes(router *gin.Engine, handler *Handler) {
-	api := router.Group("/users")
-	{
-		api.POST("", handler.CreateUser)
 
-		api.GET("", handler.ListUsers)
-		api.GET("/:id", handler.GetUser)
-		api.PUT("/:id", handler.UpdateUser)
-		api.DELETE("/:id", handler.DeleteUser)
-		api.PATCH("/:id/status", handler.SetStatus)
+	// 🔓 Public route
+	router.POST("/users", handler.CreateUser)
+	
+	// 🔐 Protected routes
+	protected := router.Group("/users")
+	protected.Use(middleware.JWTAuth(os.Getenv("ACCESS_TOKEN_SECRET")))
+	{
+		protected.GET("", handler.ListUsers)
+		protected.GET("/:id", handler.GetUser)
+		protected.PUT("/:id", handler.UpdateUser)
+		protected.DELETE("/:id", handler.DeleteUser)
+		protected.PATCH("/:id/status", handler.SetStatus)
 	}
 }
