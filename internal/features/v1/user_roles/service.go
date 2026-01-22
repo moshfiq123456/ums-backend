@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Service struct {
@@ -23,7 +24,12 @@ func (s *Service) RemoveRoles(ctx context.Context, userID uuid.UUID, roleIDs []u
 	return s.repo.RemoveRoles(ctx, userID, roleIDs)
 }
 
-func (s *Service) ListRoles(ctx context.Context, userID uuid.UUID) ([]models.Role, error) {
-	// Use models.Role instead of undefined Role
-	return s.repo.ListRoles(ctx, userID)
+func (s *Service) ListRoles(
+	ctx context.Context,
+	userID uuid.UUID,
+	p utils.Pagination,
+) ([]models.Role, error) {
+
+	return s.repo.ListRoles(ctx, userID, p.Page, p.Size)
 }
+

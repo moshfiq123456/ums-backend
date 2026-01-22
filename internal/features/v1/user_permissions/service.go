@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Service struct {
@@ -23,6 +24,12 @@ func (s *Service) RemovePermissions(ctx context.Context, userID uuid.UUID, permi
 	return s.repo.RemovePermissions(ctx, userID, permissionIDs)
 }
 
-func (s *Service) ListPermissions(ctx context.Context, userID uuid.UUID) ([]models.Permission, error) {
-	return s.repo.ListPermissions(ctx, userID)
+func (s *Service) ListPermissions(
+	ctx context.Context,
+	userID uuid.UUID,
+	p utils.Pagination,
+) ([]models.Permission, error) {
+
+	return s.repo.ListPermissions(ctx, userID, p.Page, p.Size)
 }
+
