@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Handler struct {
@@ -61,18 +62,54 @@ func (h *Handler) RemoveRoles(c *gin.Context) {
 
 // GET /users/:id/roles
 func (h *Handler) ListRoles(c *gin.Context) {
+	var pagination utils.Pagination
+
+	// 1️⃣ Bind query params
+	_ = c.ShouldBindQuery(&pagination)
+
+	// 2️⃣ Hard validation
+	if pagination.Page < 0 || pagination.Size < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid pagination params",
+		})
+		return
+	}
+
+	// 3️⃣ Normalize defaults
+	pagination.Normalize()
+
+	// 4️⃣ Parse user ID
 	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid user id",
+		})
 		return
 	}
 
-	roles, err := h.service.ListRoles(c.Request.Context(), userID)
+	// 5️⃣ Call service
+	roles, err := h.service.ListRoles(
+		c.Request.Context(),
+		userID,
+		pagination,
+	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
+	// 6️⃣ Map response
 	resp := ToUserRoleResponses(c.Param("id"), roles)
-	c.JSON(http.StatusOK, resp)
+
+	// 7️⃣ Return with meta
+	c.JSON(http.StatusOK, gin.H{
+		"data": resp,
+		"meta": gin.H{
+			"page": pagination.Page,
+			"size": pagination.Size,
+		},
+	})
 }
+

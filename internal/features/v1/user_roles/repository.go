@@ -34,12 +34,24 @@ func (r *Repository) RemoveRoles(ctx context.Context, userID uuid.UUID, roleIDs 
 		Delete(&models.UserRole{}).Error
 }
 
-func (r *Repository) ListRoles(ctx context.Context, userID uuid.UUID) ([]models.Role, error) {
+func (r *Repository) ListRoles(
+	ctx context.Context,
+	userID uuid.UUID,
+	page, size int,
+) ([]models.Role, error) {
+
 	var roles []models.Role
+	offset := (page - 1) * size
+
 	err := r.db.WithContext(ctx).
 		Model(&models.Role{}).
 		Joins("JOIN user_roles ur ON ur.role_id = roles.id").
 		Where("ur.user_id = ?", userID).
+		Order("roles.created_at DESC").
+		Limit(size).
+		Offset(offset).
 		Find(&roles).Error
+
 	return roles, err
 }
+

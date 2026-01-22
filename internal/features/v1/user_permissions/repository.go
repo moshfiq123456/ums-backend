@@ -35,12 +35,24 @@ func (r *Repository) RemovePermissions(ctx context.Context, userID uuid.UUID, pe
 		Delete(&models.UserPermission{}).Error
 }
 
-func (r *Repository) ListPermissions(ctx context.Context, userID uuid.UUID) ([]models.Permission, error) {
+func (r *Repository) ListPermissions(
+	ctx context.Context,
+	userID uuid.UUID,
+	page, size int,
+) ([]models.Permission, error) {
+
 	var perms []models.Permission
+	offset := (page - 1) * size
+
 	err := r.db.WithContext(ctx).
 		Model(&models.Permission{}).
 		Joins("JOIN user_permissions up ON up.permission_id = permissions.id").
 		Where("up.user_id = ?", userID).
+		Order("permissions.created_at DESC").
+		Limit(size).
+		Offset(offset).
 		Find(&perms).Error
+
 	return perms, err
 }
+

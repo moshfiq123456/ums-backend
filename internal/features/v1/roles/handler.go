@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Handler struct {
@@ -34,18 +35,32 @@ func (h *Handler) Create(c *gin.Context) {
 
 // GET /roles
 func (h *Handler) List(c *gin.Context) {
-	roles, err := h.service.List(c.Request.Context())
+	var pagination utils.Pagination
+
+	_ = c.ShouldBindQuery(&pagination)
+		// ❗ Validation (NO return value)
+	if pagination.Page < 0 || pagination.Size < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid pagination params",
+		})
+		return
+	}
+
+	pagination.Normalize()
+
+	roles, err := h.service.List(c.Request.Context(), pagination)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	resp := make([]RoleResponse, 0, len(roles))
-	for _, r := range roles {
-		resp = append(resp, toResponse(r))
-	}
-
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, gin.H{
+		"data": roles,
+		"meta": gin.H{
+			"page": pagination.Page,
+			"size": pagination.Size,
+		},
+	})
 }
 
 // GET /roles/:id
