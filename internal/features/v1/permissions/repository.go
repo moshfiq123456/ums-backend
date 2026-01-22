@@ -19,9 +19,15 @@ func (r *Repository) Create(ctx context.Context, p models.Permission) error {
 	return r.db.WithContext(ctx).Create(&p).Error
 }
 
-func (r *Repository) List(ctx context.Context) ([]models.Permission, error) {
+func (r *Repository) List(ctx context.Context,page, size int) ([]models.Permission, error) {
+
 	var perms []models.Permission
-	err := r.db.WithContext(ctx).Find(&perms).Error
+	offset := (page - 1) * size
+	err := r.db.WithContext(ctx).
+		Order("created_at DESC").
+		Limit(size).
+		Offset(offset).
+		Find(&perms).Error
 	return perms, err
 }
 

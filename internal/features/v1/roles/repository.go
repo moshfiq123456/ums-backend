@@ -21,11 +21,20 @@ func (r *Repository) Create(ctx context.Context, role models.Role) (models.Role,
 	return role, err
 }
 
-func (r *Repository) List(ctx context.Context) ([]models.Role, error) {
+func (r *Repository) List(ctx context.Context, page, size int) ([]models.Role, error) {
 	var roles []models.Role
-	err := r.db.WithContext(ctx).Find(&roles).Error
+
+	offset := (page - 1) * size
+
+	err := r.db.WithContext(ctx).
+		Order("created_at DESC").
+		Limit(size).
+		Offset(offset).
+		Find(&roles).Error
+
 	return roles, err
 }
+
 
 func (r *Repository) GetByID(ctx context.Context, id int64) (models.Role, error) {
 	var role models.Role

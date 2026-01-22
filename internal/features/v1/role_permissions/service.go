@@ -3,6 +3,8 @@ package role_permissions
 import (
 	"context"
 	"errors"
+
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Service struct {
@@ -35,16 +37,22 @@ func (s *Service) Remove(ctx context.Context, roleID, permissionID uint) error {
 	return s.repo.Delete(ctx, roleID, permissionID)
 }
 
-func (s *Service) List(ctx context.Context, roleID uint) (interface{}, error) {
-	perms, err := s.repo.List(ctx, roleID)
+func (s *Service) List(
+	ctx context.Context,
+	roleID uint,
+	p utils.Pagination,
+) ([]PermissionResponse, error) {
+
+	perms, err := s.repo.List(ctx, roleID, p.Page, p.Size)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := make([]PermissionResponse, 0, len(perms))
-	for _, p := range perms {
-		resp = append(resp, toPermissionResponse(p))
+	for _, perm := range perms {
+		resp = append(resp, toPermissionResponse(perm))
 	}
 
 	return resp, nil
 }
+

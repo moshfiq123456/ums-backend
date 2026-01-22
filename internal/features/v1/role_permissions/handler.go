@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Handler struct {
@@ -97,17 +98,51 @@ func (h *Handler) Remove(c *gin.Context) {
 
 // GET /roles/:roleId/permissions
 func (h *Handler) List(c *gin.Context) {
+	var pagination utils.Pagination
+
+	// 1️⃣ Bind query params
+	_ = c.ShouldBindQuery(&pagination)
+
+	// 2️⃣ Hard validation
+	if pagination.Page < 0 || pagination.Size < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid pagination params",
+		})
+		return
+	}
+
+	// 3️⃣ Normalize defaults
+	pagination.Normalize()
+
+	// 4️⃣ Parse path param
 	roleID, err := strconv.ParseUint(c.Param("roleId"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role id"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid role id",
+		})
 		return
 	}
 
-	result, err := h.service.List(c.Request.Context(), uint(roleID))
+	// 5️⃣ Call service
+	result, err := h.service.List(
+		c.Request.Context(),
+		uint(roleID),
+		pagination,
+	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	// 6️⃣ Response
+	c.JSON(http.StatusOK, gin.H{
+		"data": result,
+		"meta": gin.H{
+			"page": pagination.Page,
+			"size": pagination.Size,
+		},
+	})
 }
+

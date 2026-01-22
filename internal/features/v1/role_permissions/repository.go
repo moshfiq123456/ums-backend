@@ -37,11 +37,22 @@ func (r *Repository) Delete(ctx context.Context, roleID, permissionID uint) erro
 		Delete(&models.RolePermission{}).Error
 }
 
-func (r *Repository) List(ctx context.Context, roleID uint) ([]models.Permission, error) {
-	var permissions []models.Permission
+func (r *Repository) List(
+	ctx context.Context,
+	roleID uint,
+	page, size int,
+) ([]models.Permission, error) {
+
+	var perms []models.Permission
+	offset := (page - 1) * size
+
 	err := r.db.WithContext(ctx).
-		Joins("JOIN role_permissions rp ON rp.permission_id = permissions.id").
-		Where("rp.role_id = ?", roleID).
-		Find(&permissions).Error
-	return permissions, err
+		Where("role_id = ?", roleID).
+		Order("created_at DESC").
+		Limit(size).
+		Offset(offset).
+		Find(&perms).Error
+
+	return perms, err
 }
+

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/moshfiq123456/ums-backend/internal/models"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Service struct {
@@ -23,8 +24,8 @@ func (s *Service) Create(ctx context.Context, req CreatePermissionRequest) error
 	return s.repo.Create(ctx, p)
 }
 
-func (s *Service) List(ctx context.Context) ([]models.Permission, error) {
-	return s.repo.List(ctx)
+func (s *Service) List(ctx context.Context,p utils.Pagination) ([]models.Permission, error) {
+	return s.repo.List(ctx,p.Page, p.Size)
 }
 
 func (s *Service) Get(ctx context.Context, id uint) (models.Permission, error) {

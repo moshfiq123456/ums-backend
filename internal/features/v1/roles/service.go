@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/moshfiq123456/ums-backend/internal/models"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Service struct {
@@ -25,8 +26,8 @@ func (s *Service) Create(ctx context.Context, req CreateRoleRequest) (models.Rol
 	return s.repo.Create(ctx, role)
 }
 
-func (s *Service) List(ctx context.Context) ([]models.Role, error) {
-	return s.repo.List(ctx)
+func (s *Service) List(ctx context.Context,p utils.Pagination) ([]models.Role, error) {
+	return s.repo.List(ctx, p.Page, p.Size)
 }
 
 func (s *Service) GetByID(ctx context.Context, id int64) (models.Role, error) {
