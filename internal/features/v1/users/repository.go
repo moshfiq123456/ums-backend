@@ -79,3 +79,10 @@ func (r *UserRepository) Delete(ctx context.Context, id string) error {
 		Where("id = ?", id).
 		Update("deleted_at", time.Now()).Error
 }
+
+// GET BY EMAIL
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (models.User, error) {
+	var user models.User
+	err := r.db.WithContext(ctx).Where("email = ? AND deleted_at IS NULL", email).First(&user).Error
+	return user, err
+}

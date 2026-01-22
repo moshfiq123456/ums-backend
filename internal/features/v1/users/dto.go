@@ -3,15 +3,16 @@ package users
 import "time"
 
 type CreateUserRequest struct {
-	Name     string  `json:"name" binding:"required,min=2"`
+	Name     string  `json:"name" binding:"required,min=2,max=50"`
 	Email    string  `json:"email" binding:"required,email"`
-	Password string  `json:"password" binding:"required,min=8"`
-	Phone    *string `json:"phone"`
+	Password string  `json:"password" binding:"required,min=8,max=32"`
+	Phone    *string `json:"phone" binding:"omitempty,e164"` // E.164 phone format, optional
 }
 
+
 type UpdateUserRequest struct {
-	Name  *string `json:"name"`
-	Phone *string `json:"phone"`
+	Name  *string `json:"name" binding:"omitempty,min=2,max=50"`
+	Phone *string `json:"phone" binding:"omitempty,e164"`
 }
 
 type UpdateStatusRequest struct {

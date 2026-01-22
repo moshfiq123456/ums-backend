@@ -24,12 +24,39 @@ func (h *Handler) CreateUser(c *gin.Context) {
 
 	user, err := h.service.Create(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err.Error() == "validation failed" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.FormatValidationError(err)})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, toResponse(user))
 }
+
+func (h *Handler) UpdateUser(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.service.Update(c.Request.Context(), id, req)
+	if err != nil {
+		if err.Error() == "validation failed" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.FormatValidationError(err)})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, toResponse(user))
+}
+
+
 
 func (h *Handler) ListUsers(c *gin.Context) {
 	var pagination utils.Pagination
@@ -70,23 +97,6 @@ func (h *Handler) GetUser(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, toResponse(user))
-}
-
-func (h *Handler) UpdateUser(c *gin.Context) {
-	id := c.Param("id")
-	var req UpdateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	user, err := h.service.Update(c.Request.Context(), id, req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	c.JSON(http.StatusOK, toResponse(user))
 }
 
