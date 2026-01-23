@@ -5,10 +5,6 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required,min=6"`
 }
 
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
-}
-
 type LogoutRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
@@ -21,14 +17,12 @@ type UserAuthResponse struct {
 }
 
 type LoginResponse struct {
-	User         UserAuthResponse `json:"user"`
-	AccessToken  string           `json:"access_token"`
-	RefreshToken string           `json:"refresh_token"`
-	ExpiresAt    string           `json:"expires_at"`
+	User        UserAuthResponse `json:"user"`
+	AccessToken string           `json:"access_token"`
+	ExpiresAt   string           `json:"expires_at"`
 }
 
 type RefreshResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresAt    string `json:"expires_at"`
+	AccessToken string `json:"access_token"`
+	ExpiresAt   string `json:"expires_at"`
 }
