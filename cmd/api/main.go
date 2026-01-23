@@ -21,7 +21,7 @@ func main() {
 		cfg.Database.Password,
 		cfg.Database.DBName,
 	)
-
+	
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("❌ Failed to connect to database:", err)

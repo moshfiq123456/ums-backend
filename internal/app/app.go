@@ -3,7 +3,9 @@ package app
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/moshfiq123456/ums-backend/internal/config"
 	"gorm.io/gorm"
@@ -19,7 +21,27 @@ type Server struct {
 // NewServer initializes the server with middlewares
 func NewServer(cfg *config.Config, db *gorm.DB) *Server {
 	router := gin.New()
-
+    router.Use(cors.New(cors.Config{
+		AllowOrigins: []string{
+			"http://localhost:3000", // React
+			"http://localhost:5173", // Vite
+			"http://localhost:4200", // Angular
+		},
+		AllowMethods: []string{
+			"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+		},
+		ExposeHeaders: []string{
+			"Content-Length",
+		},
+		AllowCredentials: true,
+		MaxAge: 12 * time.Hour,
+	}))
 	// Standard middlewares
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -33,6 +55,7 @@ func NewServer(cfg *config.Config, db *gorm.DB) *Server {
 
 // Start runs the server
 func (s *Server) Start(registerRoutes func(*gin.Engine, *gorm.DB)) {
+    
     // Register all routes
     registerRoutes(s.router, s.db)
 
