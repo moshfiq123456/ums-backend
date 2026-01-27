@@ -36,8 +36,8 @@ func (h *Handler) Login(c *gin.Context) {
 		Value:    refreshToken,
 		HttpOnly: true,
 		Secure:   false, // set true in production
-		SameSite: http.SameSiteStrictMode,
-		Path:     "/auth/refresh",
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 		Expires:  time.Now().Add(parseDuration(os.Getenv("REFRESH_TOKEN_TTL"))),
 	})
 
@@ -64,8 +64,8 @@ func (h *Handler) Refresh(c *gin.Context) {
 		Value:    newRefreshToken,
 		HttpOnly: true,
 		Secure:   false, // set true in production
-		SameSite: http.SameSiteStrictMode,
-		Path:     "/auth/refresh",
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 		Expires:  time.Now().Add(parseDuration(os.Getenv("REFRESH_TOKEN_TTL"))),
 	})
 
@@ -89,7 +89,7 @@ func (h *Handler) Logout(c *gin.Context) {
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    "",
-		Path:     "/auth/refresh",
+		Path:     "/",
 		HttpOnly: true,
 		MaxAge:   -1,
 	})
