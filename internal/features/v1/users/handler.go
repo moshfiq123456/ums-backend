@@ -92,12 +92,12 @@ func (h *Handler) ListUsers(c *gin.Context) {
 
 func (h *Handler) GetUser(c *gin.Context) {
 	id := c.Param("id")
-	user, err := h.service.GetByID(c.Request.Context(), id)
+	detail, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, toResponse(user))
+	c.JSON(http.StatusOK, toDetailResponse(detail.User, detail.Parent, detail.Children))
 }
 
 func (h *Handler) DeleteUser(c *gin.Context) {

@@ -19,12 +19,38 @@ type UpdateStatusRequest struct {
 	Status string `json:"status" binding:"required,oneof=active inactive blocked"`
 }
 
+type UserRoleItem struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Code string `json:"code"`
+}
+
+type UserPermissionItem struct {
+	ID    uint   `json:"id"`
+	Code  string `json:"code"`
+	Name  string `json:"name"`
+	Allow bool   `json:"allow"`
+}
+
+type HierarchyUserItem struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type UserHierarchyInfo struct {
+	Parent   *HierarchyUserItem  `json:"parent"`
+	Children []HierarchyUserItem `json:"children"`
+}
+
 type UserResponse struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
-	Email     string     `json:"email"`
-	Phone     *string    `json:"phone,omitempty"`
-	Status    string     `json:"status"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID          string               `json:"id"`
+	Name        string               `json:"name"`
+	Email       string               `json:"email"`
+	Phone       *string              `json:"phone,omitempty"`
+	Status      string               `json:"status"`
+	Roles       []UserRoleItem       `json:"roles"`
+	Permissions []UserPermissionItem `json:"permissions"`
+	Hierarchy   UserHierarchyInfo    `json:"hierarchy"`
+	CreatedAt   time.Time            `json:"created_at"`
+	UpdatedAt   time.Time            `json:"updated_at"`
 }

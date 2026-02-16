@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
@@ -61,9 +62,45 @@ func (s *Service) List(ctx context.Context, p utils.Pagination) ([]models.User, 
 	return s.repo.List(ctx, p.Page, p.Size)
 }
 
-// GET BY ID
-func (s *Service) GetByID(ctx context.Context, id string) (models.User, error) {
-	return s.repo.GetByID(ctx, id)
+// UserDetail bundles a user with their hierarchy info
+type UserDetail struct {
+	User     models.User
+	Parent   *models.User
+	Children []models.User
+}
+
+// GET BY ID with all relations (parent & children fetched concurrently)
+func (s *Service) GetByID(ctx context.Context, id string) (UserDetail, error) {
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return UserDetail{}, err
+	}
+
+	var (
+		parent   *models.User
+		children []models.User
+		wg       sync.WaitGroup
+	)
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		parent, _ = s.repo.GetParent(ctx, user.ID)
+	}()
+
+	go func() {
+		defer wg.Done()
+		children, _ = s.repo.GetChildren(ctx, user.ID)
+	}()
+
+	wg.Wait()
+
+	return UserDetail{
+		User:     user,
+		Parent:   parent,
+		Children: children,
+	}, nil
 }
 
 // DELETE

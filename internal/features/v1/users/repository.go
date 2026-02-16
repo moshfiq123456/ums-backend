@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
 	"gorm.io/gorm"
 )
@@ -37,13 +38,39 @@ func (r *UserRepository) List(ctx context.Context, page, size int) ([]models.Use
 	return users, err
 }
 
-// GET BY ID
+// GET BY ID with all relations
 func (r *UserRepository) GetByID(ctx context.Context, id string) (models.User, error) {
 	var user models.User
 	err := r.db.WithContext(ctx).
+		Preload("Roles").
+		Preload("Permissions").
+		Preload("Permissions.Permission").
 		Where("id = ? AND deleted_at IS NULL", id).
 		First(&user).Error
 	return user, err
+}
+
+// GET PARENT of a user from hierarchy
+func (r *UserRepository) GetParent(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+	var user models.User
+	err := r.db.WithContext(ctx).
+		Joins("JOIN user_hierarchy uh ON uh.parent_user_id = users.id").
+		Where("uh.child_user_id = ?", userID).
+		First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// GET CHILDREN of a user from hierarchy
+func (r *UserRepository) GetChildren(ctx context.Context, userID uuid.UUID) ([]models.User, error) {
+	var users []models.User
+	err := r.db.WithContext(ctx).
+		Joins("JOIN user_hierarchy uh ON uh.child_user_id = users.id").
+		Where("uh.parent_user_id = ?", userID).
+		Find(&users).Error
+	return users, err
 }
 
 // UPDATE
