@@ -3,8 +3,6 @@ package users
 import (
 	"context"
 	"errors"
-	"sync"
-
 	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
 	"github.com/moshfiq123456/ums-backend/internal/utils"
@@ -69,37 +67,30 @@ type UserDetail struct {
 	Children []models.User
 }
 
-// GET BY ID with all relations (parent & children fetched concurrently)
+// GET BY ID with all relations (parent & children fetched concurrently via channels)
 func (s *Service) GetByID(ctx context.Context, id string) (UserDetail, error) {
 	user, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return UserDetail{}, err
 	}
 
-	var (
-		parent   *models.User
-		children []models.User
-		wg       sync.WaitGroup
-	)
-
-	wg.Add(2)
+	parentCh := make(chan *models.User, 1)
+	childrenCh := make(chan []models.User, 1)
 
 	go func() {
-		defer wg.Done()
-		parent, _ = s.repo.GetParent(ctx, user.ID)
+		parent, _ := s.repo.GetParent(ctx, user.ID)
+		parentCh <- parent
 	}()
 
 	go func() {
-		defer wg.Done()
-		children, _ = s.repo.GetChildren(ctx, user.ID)
+		children, _ := s.repo.GetChildren(ctx, user.ID)
+		childrenCh <- children
 	}()
-
-	wg.Wait()
 
 	return UserDetail{
 		User:     user,
-		Parent:   parent,
-		Children: children,
+		Parent:   <-parentCh,
+		Children: <-childrenCh,
 	}, nil
 }
 
