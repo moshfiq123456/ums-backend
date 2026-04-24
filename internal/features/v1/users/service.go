@@ -82,7 +82,7 @@ type UserDetail struct {
 	Children []models.User
 }
 
-// GET BY ID with all relations (parent & children fetched concurrently)
+// GET BY ID with all relations (parent & children fetched concurrently via channels)
 func (s *Service) GetByID(ctx context.Context, id string) (UserDetail, error) {
 	user, err := s.repo.GetByID(ctx, id)
 	if err != nil {
