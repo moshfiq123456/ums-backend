@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/sync/errgroup"
 )
 
 // Service handles auth logic
@@ -37,17 +38,33 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (LoginResponse, s
 		RefreshExpiresAt: time.Now().Add(parseDuration(os.Getenv("REFRESH_TOKEN_TTL"))),
 	}
 
-	if err := s.repo.CreateSession(ctx, session); err != nil {
-		return LoginResponse{}, "", err
-	}
+	// CreateSession (DB write), GenerateAccessToken and GenerateRefreshToken (JWT signing)
+	// are all independent — run them concurrently.
+	var (
+		accessToken  string
+		accessExp    time.Time
+		refreshToken string
+	)
 
-	accessToken, accessExp, err := GenerateAccessToken(user.ID)
-	if err != nil {
-		return LoginResponse{}, "", err
-	}
+	g, gctx := errgroup.WithContext(ctx)
 
-	refreshToken, _, err := GenerateRefreshToken(user.ID, sessionID)
-	if err != nil {
+	g.Go(func() error {
+		return s.repo.CreateSession(gctx, session)
+	})
+
+	g.Go(func() error {
+		var err error
+		accessToken, accessExp, err = GenerateAccessToken(user.ID)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		refreshToken, _, err = GenerateRefreshToken(user.ID, sessionID)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
 		return LoginResponse{}, "", err
 	}
 
@@ -67,13 +84,29 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (RefreshResp
 		return RefreshResponse{}, "", err
 	}
 
-	session, err := s.repo.FindSessionByID(ctx, claims.SessionID)
-	if err != nil {
-		return RefreshResponse{}, "", err
-	}
+	// FindSessionByID (DB read) and GenerateAccessToken (JWT signing) only need parsed
+	// claims — run them concurrently, then generate the refresh token using session.ID.
+	var (
+		session     models.LoginSession
+		accessToken string
+		accessExp   time.Time
+	)
 
-	accessToken, accessExp, err := GenerateAccessToken(claims.UserID)
-	if err != nil {
+	g, gctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var err error
+		session, err = s.repo.FindSessionByID(gctx, claims.SessionID)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		accessToken, accessExp, err = GenerateAccessToken(claims.UserID)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
 		return RefreshResponse{}, "", err
 	}
 

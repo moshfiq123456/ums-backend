@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/moshfiq123456/ums-backend/internal/utils"
+	"golang.org/x/sync/errgroup"
 )
 
 type Service struct {
@@ -23,14 +24,16 @@ func (s *Service) Assign(ctx context.Context, roleID, permissionID uint) error {
 }
 
 func (s *Service) BulkAssign(ctx context.Context, roleID uint, permissionIDs []uint) error {
+	g, gctx := errgroup.WithContext(ctx)
 	for _, pid := range permissionIDs {
-		if !s.repo.Exists(ctx, roleID, pid) {
-			if err := s.repo.Create(ctx, roleID, pid); err != nil {
-				return err
+		g.Go(func() error {
+			if !s.repo.Exists(gctx, roleID, pid) {
+				return s.repo.Create(gctx, roleID, pid)
 			}
-		}
+			return nil
+		})
 	}
-	return nil
+	return g.Wait()
 }
 
 func (s *Service) Remove(ctx context.Context, roleID, permissionID uint) error {

@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Service struct {
@@ -31,8 +32,8 @@ func (s *Service) RemoveChild(ctx context.Context, parentID, childID uuid.UUID) 
 	return s.repo.Delete(ctx, parentID, childID)
 }
 
-func (s *Service) GetChildren(ctx context.Context, userID uuid.UUID) (interface{}, error) {
-	users, err := s.repo.GetChildren(ctx, userID)
+func (s *Service) GetChildren(ctx context.Context, userID uuid.UUID, p utils.Pagination) ([]UserResponse, error) {
+	users, err := s.repo.GetChildren(ctx, userID, p.Page, p.Size)
 	if err != nil {
 		return nil, err
 	}

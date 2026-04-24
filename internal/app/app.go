@@ -1,8 +1,13 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -62,8 +67,37 @@ func (s *Server) Start(registerRoutes func(*gin.Engine, *gorm.DB)) {
 		})
 	})
 
-	log.Printf("🚀 Server starting on port %d...\n", s.cfg.Port)
-	if err := s.router.Run(fmt.Sprintf(":%d", s.cfg.Port)); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", s.cfg.Port),
+		Handler: s.router,
 	}
+
+	// Start server in a goroutine so it doesn't block signal handling.
+	go func() {
+		log.Printf("🚀 Server starting on port %d...\n", s.cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("⏳ Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("⚠️  Server forced to shutdown: %v", err)
+	}
+
+	if sqlDB, err := s.db.DB(); err == nil {
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("⚠️  Error closing database: %v", err)
+		}
+	}
+
+	log.Println("✅ Server exited cleanly")
 }

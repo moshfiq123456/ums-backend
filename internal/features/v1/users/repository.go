@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -57,6 +58,9 @@ func (r *UserRepository) GetParent(ctx context.Context, userID uuid.UUID) (*mode
 		Joins("JOIN user_hierarchy uh ON uh.parent_user_id = users.id").
 		Where("uh.child_user_id = ?", userID).
 		First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

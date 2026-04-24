@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
+
 type Repository struct {
 	db *gorm.DB
 }
@@ -38,11 +39,14 @@ func (r *Repository) Delete(ctx context.Context, parentID, childID uuid.UUID) er
 		Delete(&models.UserHierarchy{}).Error
 }
 
-func (r *Repository) GetChildren(ctx context.Context, userID uuid.UUID) ([]models.User, error) {
+func (r *Repository) GetChildren(ctx context.Context, userID uuid.UUID, page, size int) ([]models.User, error) {
 	var users []models.User
+	offset := (page - 1) * size
 	err := r.db.WithContext(ctx).
 		Joins("JOIN user_hierarchies uh ON uh.child_user_id = users.id").
 		Where("uh.parent_user_id = ?", userID).
+		Limit(size).
+		Offset(offset).
 		Find(&users).Error
 	return users, err
 }

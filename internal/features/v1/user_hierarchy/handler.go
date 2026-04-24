@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Handler struct {
@@ -79,16 +80,29 @@ func (h *Handler) GetChildren(c *gin.Context) {
 		return
 	}
 
-	children, err := h.service.GetChildren(
-		c.Request.Context(),
-		userID,
-	)
+	var pagination utils.Pagination
+	_ = c.ShouldBindQuery(&pagination)
+
+	if pagination.Page < 0 || pagination.Size < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pagination params"})
+		return
+	}
+
+	pagination.Normalize()
+
+	children, err := h.service.GetChildren(c.Request.Context(), userID, pagination)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, children)
+	c.JSON(http.StatusOK, gin.H{
+		"data": children,
+		"meta": gin.H{
+			"page": pagination.Page,
+			"size": pagination.Size,
+		},
+	})
 }
 
 // GET /users/:id/parent

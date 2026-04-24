@@ -3,12 +3,12 @@ package users
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
 	"github.com/moshfiq123456/ums-backend/internal/utils"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/sync/errgroup"
 )
 
 type Service struct {
@@ -21,19 +21,32 @@ func NewService(repo *UserRepository) *Service {
 
 // CREATE USER
 func (s *Service) Create(ctx context.Context, req CreateUserRequest) (models.User, error) {
-	// 1️⃣ Validate fields
 	if err := utils.Validate.Struct(req); err != nil {
 		return models.User{}, errors.New("validation failed")
 	}
 
-	// 2️⃣ Check unique email
-	existing, _ := s.repo.GetByEmail(ctx, req.Email)
-	if existing.ID != uuid.Nil {
-		return models.User{}, errors.New("email already exists")
-	}
+	// Email check and bcrypt are independent — run them concurrently.
+	var hash []byte
 
-	// 3️⃣ Hash password
-	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
+	g, gctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		existing, _ := s.repo.GetByEmail(gctx, req.Email)
+		if existing.ID != uuid.Nil {
+			return errors.New("email already exists")
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		hash, err = bcrypt.GenerateFromPassword([]byte(req.Password), 12)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		return models.User{}, err
+	}
 
 	user := models.User{
 		Name:         req.Name,
@@ -79,22 +92,25 @@ func (s *Service) GetByID(ctx context.Context, id string) (UserDetail, error) {
 	var (
 		parent   *models.User
 		children []models.User
-		wg       sync.WaitGroup
 	)
 
-	wg.Add(2)
+	g, gctx := errgroup.WithContext(ctx)
 
-	go func() {
-		defer wg.Done()
-		parent, _ = s.repo.GetParent(ctx, user.ID)
-	}()
+	g.Go(func() error {
+		var err error
+		parent, err = s.repo.GetParent(gctx, user.ID)
+		return err
+	})
 
-	go func() {
-		defer wg.Done()
-		children, _ = s.repo.GetChildren(ctx, user.ID)
-	}()
+	g.Go(func() error {
+		var err error
+		children, err = s.repo.GetChildren(gctx, user.ID)
+		return err
+	})
 
-	wg.Wait()
+	if err := g.Wait(); err != nil {
+		return UserDetail{}, err
+	}
 
 	return UserDetail{
 		User:     user,
