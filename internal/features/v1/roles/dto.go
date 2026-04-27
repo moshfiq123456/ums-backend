@@ -1,6 +1,11 @@
 // internal/features/v1/roles/dto.go
 package roles
 
+type RoleFilter struct {
+	Search   string `form:"search"`
+	IsActive *bool  `form:"is_active"`
+}
+
 type CreateRoleRequest struct {
 	Name        string `json:"name" validate:"required,min=3"`
 	Code        string `json:"code" validate:"required,min=3"`

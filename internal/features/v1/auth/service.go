@@ -43,8 +43,13 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (LoginResponse, e
 		return LoginResponse{}, err
 	}
 
-	// Generate tokens
-	accessToken, accessExp, err := GenerateAccessToken(user.ID)
+	// Generate tokens with org context
+	accessToken, accessExp, err := GenerateAccessToken(AccessTokenInput{
+		UserID:   user.ID,
+		OrgID:    user.OrganizationID,
+		OrgSlug:  user.Organization.Slug,
+		UserType: user.UserType,
+	})
 	if err != nil {
 		return LoginResponse{}, err
 	}
@@ -75,8 +80,19 @@ func (s *Service) Refresh(ctx context.Context, req RefreshTokenRequest) (Refresh
 		return RefreshResponse{}, err
 	}
 
+	// Fetch user to get org context
+	user, err := s.repo.FindUserByID(ctx, claims.UserID)
+	if err != nil {
+		return RefreshResponse{}, err
+	}
+
 	// Generate new access token
-	accessToken, accessExp, err := GenerateAccessToken(claims.UserID)
+	accessToken, accessExp, err := GenerateAccessToken(AccessTokenInput{
+		UserID:   user.ID,
+		OrgID:    user.OrganizationID,
+		OrgSlug:  user.Organization.Slug,
+		UserType: user.UserType,
+	})
 	if err != nil {
 		return RefreshResponse{}, err
 	}

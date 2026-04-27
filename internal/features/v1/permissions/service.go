@@ -24,8 +24,8 @@ func (s *Service) Create(ctx context.Context, req CreatePermissionRequest) error
 	return s.repo.Create(ctx, p)
 }
 
-func (s *Service) List(ctx context.Context,p utils.Pagination) ([]models.Permission, error) {
-	return s.repo.List(ctx,p.Page, p.Size)
+func (s *Service) List(ctx context.Context, p utils.Pagination, f PermissionFilter) ([]models.Permission, int64, error) {
+	return s.repo.List(ctx, p.Page, p.Size, f)
 }
 
 func (s *Service) Get(ctx context.Context, id uint) (models.Permission, error) {

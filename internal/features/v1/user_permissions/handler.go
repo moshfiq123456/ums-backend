@@ -16,6 +16,26 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// GET /users-permissions
+func (h *Handler) ListAll(c *gin.Context) {
+	var p utils.Pagination
+	var f UserPermissionFilter
+	_ = c.ShouldBindQuery(&p)
+	_ = c.ShouldBindQuery(&f)
+	p.Normalize()
+
+	results, total, err := h.service.ListAll(c.Request.Context(), p, f)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": results,
+		"meta": gin.H{"page": p.Page, "size": p.Size, "total": total},
+	})
+}
+
 // POST /users/:id/permissions
 func (h *Handler) AssignPermissions(c *gin.Context) {
 	userID, err := uuid.Parse(c.Param("id"))

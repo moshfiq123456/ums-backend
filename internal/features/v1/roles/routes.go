@@ -12,8 +12,8 @@ func RegisterRoutes(router *gin.Engine, handler *Handler) {
 	protected.Use(middleware.JWTAuth(os.Getenv("ACCESS_TOKEN_SECRET")))
 	{
 		// CRUD
-		protected.POST("/", handler.Create)
-		protected.GET("/", handler.List)
+		protected.POST("", handler.Create)
+		protected.GET("", handler.List)
 		protected.GET("/:roleId", handler.Get)
 		protected.PUT("/:roleId", handler.Update)
 		protected.PATCH("/:roleId/status", handler.SetStatus)

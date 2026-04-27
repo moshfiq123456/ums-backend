@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
 type Handler struct {
@@ -13,6 +14,26 @@ type Handler struct {
 
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
+}
+
+// GET /users/hierarchy
+func (h *Handler) ListAll(c *gin.Context) {
+	var p utils.Pagination
+	var filter HierarchyFilter
+	_ = c.ShouldBindQuery(&p)
+	_ = c.ShouldBindQuery(&filter)
+	p.Normalize()
+
+	results, total, err := h.service.ListAll(c.Request.Context(), p.Page, p.Size, filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": results,
+		"meta": gin.H{"page": p.Page, "size": p.Size, "total": total},
+	})
 }
 
 // POST /users/:parentId/children

@@ -13,9 +13,9 @@ func RegisterRoutes(router *gin.Engine, handler *Handler) {
 	{
 		permissions := protected.Group("/:roleId/permissions")
 		{
-			permissions.POST("/", handler.Assign)
+			permissions.POST("", handler.Assign)
 			permissions.POST("/bulk", handler.BulkAssign)
-			permissions.GET("/", handler.List)
+			permissions.GET("", handler.List)
 			permissions.DELETE("/:permissionId", handler.Remove)
 		}
 	}

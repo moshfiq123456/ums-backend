@@ -29,7 +29,10 @@ func (s *Service) ListPermissions(
 	userID uuid.UUID,
 	p utils.Pagination,
 ) ([]models.Permission, error) {
-
 	return s.repo.ListPermissions(ctx, userID, p.Page, p.Size)
+}
+
+func (s *Service) ListAll(ctx context.Context, p utils.Pagination, f UserPermissionFilter) ([]UserPermissionDetail, int64, error) {
+	return s.repo.ListAll(ctx, p.Page, p.Size, f)
 }
 

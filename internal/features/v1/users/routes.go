@@ -22,5 +22,8 @@ func RegisterRoutes(router *gin.Engine, handler *Handler) {
 		protected.PUT("/:id", handler.UpdateUser)
 		protected.DELETE("/:id", handler.DeleteUser)
 		protected.PATCH("/:id/status", handler.SetStatus)
+		protected.PATCH("/:id/password", handler.ChangePassword)
+		protected.PATCH("/:id/avatar", handler.UploadAvatar)
+		protected.DELETE("/:id/avatar", handler.RemoveAvatar)
 	}
 }

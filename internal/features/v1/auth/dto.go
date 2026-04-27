@@ -14,10 +14,13 @@ type LogoutRequest struct {
 }
 
 type UserAuthResponse struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Status string `json:"status"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Status   string `json:"status"`
+	UserType string `json:"user_type"`
+	OrgID    string `json:"org_id"`
+	OrgSlug  string `json:"org_slug"`
 }
 
 type LoginResponse struct {

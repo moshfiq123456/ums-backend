@@ -16,3 +16,11 @@ func toResponse(role models.Role) RoleResponse {
 		UpdatedAt:   role.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 }
+
+func toResponseList(roles []models.Role) []RoleResponse {
+	res := make([]RoleResponse, 0, len(roles))
+	for _, r := range roles {
+		res = append(res, toResponse(r))
+	}
+	return res
+}

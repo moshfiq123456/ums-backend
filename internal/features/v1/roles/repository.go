@@ -21,18 +21,23 @@ func (r *Repository) Create(ctx context.Context, role models.Role) (models.Role,
 	return role, err
 }
 
-func (r *Repository) List(ctx context.Context, page, size int) ([]models.Role, error) {
+func (r *Repository) List(ctx context.Context, page, size int, f RoleFilter) ([]models.Role, int64, error) {
 	var roles []models.Role
-
+	var total int64
 	offset := (page - 1) * size
 
-	err := r.db.WithContext(ctx).
-		Order("created_at DESC").
-		Limit(size).
-		Offset(offset).
-		Find(&roles).Error
+	q := r.db.WithContext(ctx).Model(&models.Role{})
+	if f.Search != "" {
+		like := "%" + f.Search + "%"
+		q = q.Where("name ILIKE ? OR code ILIKE ?", like, like)
+	}
+	if f.IsActive != nil {
+		q = q.Where("is_active = ?", *f.IsActive)
+	}
+	q.Count(&total)
 
-	return roles, err
+	err := q.Order("created_at DESC").Limit(size).Offset(offset).Find(&roles).Error
+	return roles, total, err
 }
 
 

@@ -59,3 +59,7 @@ func (s *Service) CheckHierarchy(ctx context.Context, parentID, childID uuid.UUI
 		IsRelated: s.repo.Exists(ctx, parentID, childID),
 	}, nil
 }
+
+func (s *Service) ListAll(ctx context.Context, page, size int, f HierarchyFilter) ([]HierarchyDetail, int64, error) {
+	return s.repo.ListAll(ctx, page, size, f)
+}

@@ -36,36 +36,31 @@ func (h *Handler) Create(c *gin.Context) {
 // GET /roles
 func (h *Handler) List(c *gin.Context) {
 	var pagination utils.Pagination
-
+	var filter RoleFilter
 	_ = c.ShouldBindQuery(&pagination)
-		// ❗ Validation (NO return value)
+	_ = c.ShouldBindQuery(&filter)
+
 	if pagination.Page < 0 || pagination.Size < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid pagination params",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pagination params"})
 		return
 	}
-
 	pagination.Normalize()
 
-	roles, err := h.service.List(c.Request.Context(), pagination)
+	roles, total, err := h.service.List(c.Request.Context(), pagination, filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": roles,
-		"meta": gin.H{
-			"page": pagination.Page,
-			"size": pagination.Size,
-		},
+		"data": toResponseList(roles),
+		"meta": gin.H{"page": pagination.Page, "size": pagination.Size, "total": total},
 	})
 }
 
 // GET /roles/:id
 func (h *Handler) Get(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("roleId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role id"})
 		return
@@ -82,7 +77,7 @@ func (h *Handler) Get(c *gin.Context) {
 
 // PUT /roles/:id
 func (h *Handler) Update(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("roleId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role id"})
 		return
@@ -105,7 +100,7 @@ func (h *Handler) Update(c *gin.Context) {
 
 // PATCH /roles/:id/status
 func (h *Handler) SetStatus(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("roleId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role id"})
 		return
@@ -133,7 +128,7 @@ func (h *Handler) SetStatus(c *gin.Context) {
 
 // DELETE /roles/:id
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("roleId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role id"})
 		return

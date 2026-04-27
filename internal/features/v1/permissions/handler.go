@@ -35,29 +35,25 @@ func (h *Handler) Create(c *gin.Context) {
 // GET /permissions
 func (h *Handler) List(c *gin.Context) {
 	var pagination utils.Pagination
-
+	var filter PermissionFilter
 	_ = c.ShouldBindQuery(&pagination)
-		// ❗ Validation (NO return value)
+	_ = c.ShouldBindQuery(&filter)
+
 	if pagination.Page < 0 || pagination.Size < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid pagination params",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pagination params"})
 		return
 	}
-
 	pagination.Normalize()
-	perms, err := h.service.List(c.Request.Context(),pagination)
+
+	perms, total, err := h.service.List(c.Request.Context(), pagination, filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": perms,
-		"meta": gin.H{
-			"page": pagination.Page,
-			"size": pagination.Size,
-		},
+		"data": ToResponseList(perms),
+		"meta": gin.H{"page": pagination.Page, "size": pagination.Size, "total": total},
 	})
 }
 

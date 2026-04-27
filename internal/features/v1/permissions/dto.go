@@ -1,5 +1,10 @@
 package permissions
 
+type PermissionFilter struct {
+	Search  string `form:"search"`
+	Service string `form:"service"`
+}
+
 type CreatePermissionRequest struct {
 	Code        string `json:"code" validate:"required,lowercase"`
 	Name        string `json:"name" validate:"required,min=3"`

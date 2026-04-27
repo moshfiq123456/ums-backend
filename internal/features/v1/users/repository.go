@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/moshfiq123456/ums-backend/internal/models"
@@ -23,18 +24,24 @@ func (r *UserRepository) Create(ctx context.Context, user models.User) (models.U
 }
 
 // LIST
-func (r *UserRepository) List(ctx context.Context, page, size int) ([]models.User, error) {
+func (r *UserRepository) List(ctx context.Context, page, size int, f UserFilter) ([]models.User, int64, error) {
 	var users []models.User
+	var total int64
 	offset := (page - 1) * size
 
-	err := r.db.WithContext(ctx).
-		Where("deleted_at IS NULL").
-		Order("created_at DESC").
-		Limit(size).
-		Offset(offset).
-		Find(&users).Error
+	q := r.db.WithContext(ctx).Model(&models.User{}).Where("deleted_at IS NULL")
+	if f.Search != "" {
+		like := "%" + f.Search + "%"
+		q = q.Where("name ILIKE ? OR email ILIKE ?", like, like)
+	}
+	if f.Status != "" {
+		statuses := strings.Split(f.Status, ",")
+		q = q.Where("status IN ?", statuses)
+	}
+	q.Count(&total)
 
-	return users, err
+	err := q.Preload("Roles").Order("created_at DESC").Limit(size).Offset(offset).Find(&users).Error
+	return users, total, err
 }
 
 // GET BY ID
@@ -85,4 +92,24 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (models.U
 	var user models.User
 	err := r.db.WithContext(ctx).Where("email = ? AND deleted_at IS NULL", email).First(&user).Error
 	return user, err
+}
+
+// CHANGE PASSWORD
+func (r *UserRepository) ChangePassword(ctx context.Context, id string, hash string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", id).
+		Update("password_hash", hash).Error
+}
+
+// UPDATE AVATAR (pass empty string to clear)
+func (r *UserRepository) UpdateAvatar(ctx context.Context, id string, avatarURL string) error {
+	val := interface{}(avatarURL)
+	if avatarURL == "" {
+		val = nil
+	}
+	return r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", id).
+		Update("avatar_url", val).Error
 }

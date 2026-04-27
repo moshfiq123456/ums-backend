@@ -3,11 +3,10 @@ package app
 import (
 	"fmt"
 	"log"
-	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/moshfiq123456/ums-backend/internal/config"
+	"github.com/moshfiq123456/ums-backend/internal/middleware"
 	"gorm.io/gorm"
 )
 
@@ -21,27 +20,28 @@ type Server struct {
 // NewServer initializes the server with middlewares
 func NewServer(cfg *config.Config, db *gorm.DB) *Server {
 	router := gin.New()
-    router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"http://localhost:3000", // React
-			"http://localhost:5173", // Vite
-			"http://localhost:4200", // Angular
-		},
-		AllowMethods: []string{
-			"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS",
-		},
-		AllowHeaders: []string{
-			"Origin",
-			"Content-Type",
-			"Accept",
-			"Authorization",
-		},
-		ExposeHeaders: []string{
-			"Content-Length",
-		},
-		AllowCredentials: true,
-		MaxAge: 12 * time.Hour,
-	}))
+    allowedOrigins := map[string]bool{
+		"http://localhost:3000": true,
+		"http://localhost:5173": true,
+		"http://localhost:4200": true,
+	}
+	router.Use(middleware.OrgContext())
+	router.Use(func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		if allowedOrigins[origin] {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, Cache-Control, X-Requested-With")
+			c.Header("Access-Control-Expose-Headers", "Content-Length, Set-Cookie")
+			c.Header("Access-Control-Max-Age", "43200")
+		}
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
 	// Standard middlewares
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -56,6 +56,9 @@ func NewServer(cfg *config.Config, db *gorm.DB) *Server {
 // Start runs the server
 func (s *Server) Start(registerRoutes func(*gin.Engine, *gorm.DB)) {
     
+    // Serve uploaded files
+    s.router.Static("/uploads", "./uploads")
+
     // Register all routes
     registerRoutes(s.router, s.db)
 

@@ -19,16 +19,23 @@ func (r *Repository) Create(ctx context.Context, p models.Permission) error {
 	return r.db.WithContext(ctx).Create(&p).Error
 }
 
-func (r *Repository) List(ctx context.Context,page, size int) ([]models.Permission, error) {
-
+func (r *Repository) List(ctx context.Context, page, size int, f PermissionFilter) ([]models.Permission, int64, error) {
 	var perms []models.Permission
+	var total int64
 	offset := (page - 1) * size
-	err := r.db.WithContext(ctx).
-		Order("created_at DESC").
-		Limit(size).
-		Offset(offset).
-		Find(&perms).Error
-	return perms, err
+
+	q := r.db.WithContext(ctx).Model(&models.Permission{})
+	if f.Search != "" {
+		like := "%" + f.Search + "%"
+		q = q.Where("name ILIKE ? OR code ILIKE ?", like, like)
+	}
+	if f.Service != "" {
+		q = q.Where("service = ?", f.Service)
+	}
+	q.Count(&total)
+
+	err := q.Order("created_at DESC").Limit(size).Offset(offset).Find(&perms).Error
+	return perms, total, err
 }
 
 func (r *Repository) GetByID(ctx context.Context, id uint) (models.Permission, error) {

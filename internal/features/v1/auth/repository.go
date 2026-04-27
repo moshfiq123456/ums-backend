@@ -17,10 +17,20 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
+func (r *Repository) FindUserByID(ctx context.Context, id uuid.UUID) (models.User, error) {
+	var user models.User
+	err := r.db.WithContext(ctx).
+		Preload("Organization").
+		Where("id = ? AND deleted_at IS NULL", id).
+		First(&user).Error
+	return user, err
+}
+
 func (r *Repository) FindUserByEmail(ctx context.Context, email string) (models.User, error) {
 	var user models.User
 	err := r.db.WithContext(ctx).
-		Where("email = ?", email).
+		Preload("Organization").
+		Where("email = ? AND deleted_at IS NULL", email).
 		First(&user).Error
 	return user, err
 }

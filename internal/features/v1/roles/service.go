@@ -26,8 +26,8 @@ func (s *Service) Create(ctx context.Context, req CreateRoleRequest) (models.Rol
 	return s.repo.Create(ctx, role)
 }
 
-func (s *Service) List(ctx context.Context,p utils.Pagination) ([]models.Role, error) {
-	return s.repo.List(ctx, p.Page, p.Size)
+func (s *Service) List(ctx context.Context, p utils.Pagination, f RoleFilter) ([]models.Role, int64, error) {
+	return s.repo.List(ctx, p.Page, p.Size, f)
 }
 
 func (s *Service) GetByID(ctx context.Context, id int64) (models.Role, error) {

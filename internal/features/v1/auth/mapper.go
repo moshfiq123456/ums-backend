@@ -22,9 +22,12 @@ func toLoginResponse(
 
 func toUserAuthResponse(user models.User) UserAuthResponse {
 	return UserAuthResponse{
-		ID:     user.ID.String(),
-		Name:   user.Name,
-		Email:  user.Email,
-		Status: user.Status,
+		ID:       user.ID.String(),
+		Name:     user.Name,
+		Email:    user.Email,
+		Status:   user.Status,
+		UserType: user.UserType,
+		OrgID:    user.OrganizationID.String(),
+		OrgSlug:  user.Organization.Slug,
 	}
 }

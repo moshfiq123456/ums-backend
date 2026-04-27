@@ -29,7 +29,10 @@ func (s *Service) ListRoles(
 	userID uuid.UUID,
 	p utils.Pagination,
 ) ([]models.Role, error) {
-
 	return s.repo.ListRoles(ctx, userID, p.Page, p.Size)
+}
+
+func (s *Service) ListAll(ctx context.Context, p utils.Pagination, f UserRoleFilter) ([]UserRoleDetail, int64, error) {
+	return s.repo.ListAll(ctx, p.Page, p.Size, f)
 }
 

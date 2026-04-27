@@ -15,9 +15,12 @@ import (
 |--------------------------------------------------------------------------
 */
 
-// Access token claims
+// Access token claims — includes org_id and user_type for downstream services
 type AccessClaims struct {
-	UserID uuid.UUID `json:"sub"`
+	UserID   uuid.UUID `json:"sub"`
+	OrgID    uuid.UUID `json:"org_id"`
+	OrgSlug  string    `json:"org_slug"`
+	UserType string    `json:"user_type"`
 	jwt.RegisteredClaims
 }
 
@@ -34,8 +37,15 @@ type RefreshClaims struct {
 |--------------------------------------------------------------------------
 */
 
+type AccessTokenInput struct {
+	UserID   uuid.UUID
+	OrgID    uuid.UUID
+	OrgSlug  string
+	UserType string
+}
+
 // GenerateAccessToken creates a short-lived JWT access token
-func GenerateAccessToken(userID uuid.UUID) (string, time.Time, error) {
+func GenerateAccessToken(in AccessTokenInput) (string, time.Time, error) {
 	ttl, err := time.ParseDuration(os.Getenv("ACCESS_TOKEN_TTL"))
 	if err != nil {
 		return "", time.Time{}, err
@@ -44,16 +54,18 @@ func GenerateAccessToken(userID uuid.UUID) (string, time.Time, error) {
 	expiresAt := time.Now().Add(ttl)
 
 	claims := AccessClaims{
-		UserID: userID,
+		UserID:   in.UserID,
+		OrgID:    in.OrgID,
+		OrgSlug:  in.OrgSlug,
+		UserType: in.UserType,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   userID.String(),
+			Subject:   in.UserID.String(),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
 	secret := []byte(os.Getenv("ACCESS_TOKEN_SECRET"))
 	signed, err := token.SignedString(secret)
 	if err != nil {
@@ -83,7 +95,6 @@ func GenerateRefreshToken(userID, sessionID uuid.UUID) (string, time.Time, error
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
 	secret := []byte(os.Getenv("REFRESH_TOKEN_SECRET"))
 	signed, err := token.SignedString(secret)
 	if err != nil {
@@ -111,15 +122,12 @@ func ParseAccessToken(tokenString string) (*AccessClaims, error) {
 		},
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
 	)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !token.Valid {
 		return nil, errors.New("invalid access token")
 	}
-
 	return claims, nil
 }
 
@@ -135,14 +143,11 @@ func ParseRefreshToken(tokenString string) (*RefreshClaims, error) {
 		},
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
 	)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !token.Valid {
 		return nil, errors.New("invalid refresh token")
 	}
-
 	return claims, nil
 }

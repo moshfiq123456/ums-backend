@@ -60,6 +60,26 @@ func (h *Handler) RemoveRoles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Roles removed from user successfully"})
 }
 
+// GET /users-roles
+func (h *Handler) ListAll(c *gin.Context) {
+	var p utils.Pagination
+	var f UserRoleFilter
+	_ = c.ShouldBindQuery(&p)
+	_ = c.ShouldBindQuery(&f)
+	p.Normalize()
+
+	results, total, err := h.service.ListAll(c.Request.Context(), p, f)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": results,
+		"meta": gin.H{"page": p.Page, "size": p.Size, "total": total},
+	})
+}
+
 // GET /users/:id/roles
 func (h *Handler) ListRoles(c *gin.Context) {
 	var pagination utils.Pagination

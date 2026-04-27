@@ -4,12 +4,20 @@ import "github.com/moshfiq123456/ums-backend/internal/models"
 
 // Mapper: convert models.User -> UserResponse
 func toResponse(user models.User) UserResponse {
+	roles := make([]RoleInfo, 0, len(user.Roles))
+	for _, r := range user.Roles {
+		roles = append(roles, RoleInfo{ID: r.ID, Name: r.Name, Code: r.Code})
+	}
 	return UserResponse{
 		ID:        user.ID.String(),
+		OrgID:     user.OrganizationID.String(),
 		Name:      user.Name,
 		Email:     user.Email,
 		Phone:     user.Phone,
+		AvatarURL: user.AvatarURL,
+		UserType:  user.UserType,
 		Status:    user.Status,
+		Roles:     roles,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}
