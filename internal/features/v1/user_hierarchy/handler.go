@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/moshfiq123456/ums-backend/internal/middleware"
 	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
@@ -22,6 +23,9 @@ func (h *Handler) ListAll(c *gin.Context) {
 	var filter HierarchyFilter
 	_ = c.ShouldBindQuery(&p)
 	_ = c.ShouldBindQuery(&filter)
+	if orgID, ok := middleware.GetOrgID(c); ok {
+		filter.OrgID = orgID.String()
+	}
 	p.Normalize()
 
 	results, total, err := h.service.ListAll(c.Request.Context(), p.Page, p.Size, filter)

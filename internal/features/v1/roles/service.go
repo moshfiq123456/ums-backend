@@ -4,6 +4,7 @@ package roles
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
 	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
@@ -16,12 +17,13 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, req CreateRoleRequest) (models.Role, error) {
+func (s *Service) Create(ctx context.Context, req CreateRoleRequest, orgID uuid.UUID) (models.Role, error) {
 	role := models.Role{
-		Name:        req.Name,
-		Code:        req.Code,
-		Description: req.Description,
-		IsActive:    true,
+		OrganizationID: orgID,
+		Name:           req.Name,
+		Code:           req.Code,
+		Description:    req.Description,
+		IsActive:       true,
 	}
 	return s.repo.Create(ctx, role)
 }

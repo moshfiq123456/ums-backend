@@ -2,6 +2,7 @@
 package roles
 
 type RoleFilter struct {
+	OrgID    string `form:"-"`
 	Search   string `form:"search"`
 	IsActive *bool  `form:"is_active"`
 }

@@ -3,6 +3,7 @@ package users
 import "time"
 
 type UserFilter struct {
+	OrgID  string `form:"-"` // set programmatically from JWT, not from query param
 	Search string `form:"search"`
 	Status string `form:"status"`
 }

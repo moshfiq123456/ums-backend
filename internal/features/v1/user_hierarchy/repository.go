@@ -65,6 +65,9 @@ func (r *Repository) ListAll(ctx context.Context, page, size int, f HierarchyFil
 		Joins("JOIN users c ON c.id = uh.child_user_id").
 		Where("p.deleted_at IS NULL AND c.deleted_at IS NULL")
 
+	if f.OrgID != "" {
+		base = base.Where("p.organization_id = ? AND c.organization_id = ?", f.OrgID, f.OrgID)
+	}
 	if f.Search != "" {
 		like := "%" + f.Search + "%"
 		base = base.Where("p.name ILIKE ? OR p.email ILIKE ? OR c.name ILIKE ? OR c.email ILIKE ?", like, like, like, like)

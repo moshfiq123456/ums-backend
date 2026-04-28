@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/moshfiq123456/ums-backend/internal/middleware"
 	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
@@ -22,6 +23,9 @@ func (h *Handler) ListAll(c *gin.Context) {
 	var f UserPermissionFilter
 	_ = c.ShouldBindQuery(&p)
 	_ = c.ShouldBindQuery(&f)
+	if orgID, ok := middleware.GetOrgID(c); ok {
+		f.OrgID = orgID.String()
+	}
 	p.Normalize()
 
 	results, total, err := h.service.ListAll(c.Request.Context(), p, f)

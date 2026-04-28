@@ -1,6 +1,7 @@
 package user_roles
 
 type UserRoleFilter struct {
+	OrgID  string `form:"-"`
 	Search string `form:"search"`
 	UserID string `form:"user_id"`
 	RoleID string `form:"role_id"`

@@ -66,6 +66,9 @@ func (r *Repository) ListAll(ctx context.Context, page, size int, f UserPermissi
 		Joins("JOIN permissions p ON p.id = up.permission_id").
 		Where("u.deleted_at IS NULL")
 
+	if f.OrgID != "" {
+		base = base.Where("u.organization_id = ?", f.OrgID)
+	}
 	if f.Search != "" {
 		like := "%" + f.Search + "%"
 		base = base.Where("u.name ILIKE ? OR u.email ILIKE ? OR p.code ILIKE ? OR p.name ILIKE ?", like, like, like, like)

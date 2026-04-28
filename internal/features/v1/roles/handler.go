@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/moshfiq123456/ums-backend/internal/middleware"
 	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
 
@@ -24,7 +25,8 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	role, err := h.service.Create(c.Request.Context(), req)
+	orgID, _ := middleware.GetOrgID(c)
+	role, err := h.service.Create(c.Request.Context(), req, orgID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -39,6 +41,10 @@ func (h *Handler) List(c *gin.Context) {
 	var filter RoleFilter
 	_ = c.ShouldBindQuery(&pagination)
 	_ = c.ShouldBindQuery(&filter)
+
+	if orgID, ok := middleware.GetOrgID(c); ok {
+		filter.OrgID = orgID.String()
+	}
 
 	if pagination.Page < 0 || pagination.Size < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pagination params"})

@@ -65,6 +65,10 @@ func (r *Repository) ListAll(ctx context.Context, page, size int, f UserRoleFilt
 		Joins("JOIN roles  r ON r.id = ur.role_id").
 		Where("u.deleted_at IS NULL")
 
+	if f.OrgID != "" {
+		base = base.Where("u.organization_id = ?", f.OrgID)
+	}
+
 	if f.Search != "" {
 		like := "%" + f.Search + "%"
 		base = base.Where("u.name ILIKE ? OR u.email ILIKE ? OR r.name ILIKE ? OR r.code ILIKE ?", like, like, like, like)

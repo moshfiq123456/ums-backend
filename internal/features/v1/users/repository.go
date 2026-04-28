@@ -30,6 +30,10 @@ func (r *UserRepository) List(ctx context.Context, page, size int, f UserFilter)
 	offset := (page - 1) * size
 
 	q := r.db.WithContext(ctx).Model(&models.User{}).Where("deleted_at IS NULL")
+	// Scope by organization if provided
+	if f.OrgID != "" {
+		q = q.Where("organization_id = ?", f.OrgID)
+	}
 	if f.Search != "" {
 		like := "%" + f.Search + "%"
 		q = q.Where("name ILIKE ? OR email ILIKE ?", like, like)

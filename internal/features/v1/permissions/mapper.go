@@ -8,6 +8,7 @@ func ToResponse(p models.Permission) PermissionResponse {
 		Code:        p.Code,
 		Name:        p.Name,
 		Description: p.Description,
+		Service:     p.Service,
 	}
 }
 

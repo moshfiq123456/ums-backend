@@ -77,6 +77,11 @@ func (h *Handler) ListUsers(c *gin.Context) {
 	_ = c.ShouldBindQuery(&pagination)
 	_ = c.ShouldBindQuery(&filter)
 
+	// Scope by organization from JWT
+	if orgID, ok := middleware.GetOrgID(c); ok {
+		filter.OrgID = orgID.String()
+	}
+
 	if pagination.Page < 0 || pagination.Size < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pagination params"})
 		return

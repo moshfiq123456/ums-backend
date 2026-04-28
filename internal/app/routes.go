@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/moshfiq123456/ums-backend/internal/features/v1/auth"
+	"github.com/moshfiq123456/ums-backend/internal/features/v1/organizations"
 	"github.com/moshfiq123456/ums-backend/internal/features/v1/permissions"
 	"github.com/moshfiq123456/ums-backend/internal/features/v1/role_permissions"
 	"github.com/moshfiq123456/ums-backend/internal/features/v1/roles"
@@ -17,6 +18,7 @@ import (
 func RegisterRoutes(router *gin.Engine, db *gorm.DB) {
 	users.RegisterModule(router, db)
 	auth.RegisterModule(router, db)
+	organizations.RegisterModule(router, db)
 	user_roles.RegisterModule(router, db)
 	user_permissions.RegisterModule(router, db)
 	user_hierarchy.RegisterModule(router, db)

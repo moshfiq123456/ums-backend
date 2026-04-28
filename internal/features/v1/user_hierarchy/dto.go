@@ -3,6 +3,7 @@ package user_hierarchy
 import "github.com/google/uuid"
 
 type HierarchyFilter struct {
+	OrgID    string `form:"-"`
 	Search   string `form:"search"`
 	ParentID string `form:"parent_id"`
 	ChildID  string `form:"child_id"`

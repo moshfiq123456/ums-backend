@@ -27,6 +27,9 @@ func (r *Repository) List(ctx context.Context, page, size int, f RoleFilter) ([]
 	offset := (page - 1) * size
 
 	q := r.db.WithContext(ctx).Model(&models.Role{})
+	if f.OrgID != "" {
+		q = q.Where("organization_id = ?", f.OrgID)
+	}
 	if f.Search != "" {
 		like := "%" + f.Search + "%"
 		q = q.Where("name ILIKE ? OR code ILIKE ?", like, like)
