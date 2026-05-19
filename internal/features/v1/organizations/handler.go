@@ -16,7 +16,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// POST /organizations
+// CreateOrg godoc
 func (h *Handler) Create(c *gin.Context) {
 	var req CreateOrgRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -31,7 +31,7 @@ func (h *Handler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, toResponse(org, 0, 0))
 }
 
-// GET /organizations
+// ListOrgs godoc
 func (h *Handler) List(c *gin.Context) {
 	var p utils.Pagination
 	var f OrgFilter
@@ -51,7 +51,7 @@ func (h *Handler) List(c *gin.Context) {
 	})
 }
 
-// GET /organizations/:id
+// GetOrg godoc
 func (h *Handler) Get(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -67,7 +67,7 @@ func (h *Handler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, toResponse(org, users, roles))
 }
 
-// PUT /organizations/:id
+// UpdateOrg godoc
 func (h *Handler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -88,7 +88,7 @@ func (h *Handler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, toResponse(org, users, roles))
 }
 
-// PATCH /organizations/:id/status
+// SetOrgStatus godoc
 func (h *Handler) SetStatus(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -107,7 +107,7 @@ func (h *Handler) SetStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "status updated"})
 }
 
-// DELETE /organizations/:id
+// DeleteOrg godoc
 func (h *Handler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

@@ -35,3 +35,16 @@ type RefreshResponse struct {
 	RefreshToken string `json:"refresh_token"`
 	ExpiresAt    string `json:"expires_at"`
 }
+
+type GuestRequest struct {
+	OrgID string  `json:"org_id" binding:"required,uuid"`
+	Email *string `json:"email"  binding:"omitempty,email"`
+	Name  *string `json:"name"`
+}
+
+type GuestResponse struct {
+	AccessToken string `json:"access_token"`
+	ExpiresAt   string `json:"expires_at"`
+	UserID      string `json:"user_id"`
+	IsNew       bool   `json:"is_new"`
+}

@@ -15,7 +15,7 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) AssignChild(ctx context.Context, parentID, childID uuid.UUID) error {
+func (s *Service) AssignChild(ctx context.Context, parentID, childID uuid.UUID, orgID uuid.UUID) error {
 	if parentID == childID {
 		return errors.New("parent and child cannot be same")
 	}
@@ -24,15 +24,15 @@ func (s *Service) AssignChild(ctx context.Context, parentID, childID uuid.UUID) 
 		return errors.New("hierarchy already exists")
 	}
 
-	return s.repo.Create(ctx, parentID, childID)
+	return s.repo.Create(ctx, parentID, childID, orgID)
 }
 
-func (s *Service) RemoveChild(ctx context.Context, parentID, childID uuid.UUID) error {
-	return s.repo.Delete(ctx, parentID, childID)
+func (s *Service) RemoveChild(ctx context.Context, parentID, childID uuid.UUID, orgID uuid.UUID) error {
+	return s.repo.Delete(ctx, parentID, childID, orgID)
 }
 
-func (s *Service) GetChildren(ctx context.Context, userID uuid.UUID) (interface{}, error) {
-	users, err := s.repo.GetChildren(ctx, userID)
+func (s *Service) GetChildren(ctx context.Context, userID uuid.UUID, orgID uuid.UUID) (interface{}, error) {
+	users, err := s.repo.GetChildren(ctx, userID, orgID)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +45,8 @@ func (s *Service) GetChildren(ctx context.Context, userID uuid.UUID) (interface{
 	return resp, nil
 }
 
-func (s *Service) GetParent(ctx context.Context, userID uuid.UUID) (interface{}, error) {
-	user, err := s.repo.GetParent(ctx, userID)
+func (s *Service) GetParent(ctx context.Context, userID uuid.UUID, orgID uuid.UUID) (interface{}, error) {
+	user, err := s.repo.GetParent(ctx, userID, orgID)
 	if err != nil {
 		return nil, err
 	}

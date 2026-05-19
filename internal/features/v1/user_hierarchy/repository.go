@@ -2,6 +2,7 @@ package user_hierarchy
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/google/uuid"
@@ -26,33 +27,40 @@ func (r *Repository) Exists(ctx context.Context, parentID, childID uuid.UUID) bo
 	return count > 0
 }
 
-func (r *Repository) Create(ctx context.Context, parentID, childID uuid.UUID) error {
+func (r *Repository) Create(ctx context.Context, parentID, childID uuid.UUID, orgID uuid.UUID) error {
+	var count int64
+	r.db.WithContext(ctx).Model(&models.User{}).
+		Where("id IN ? AND organization_id = ? AND deleted_at IS NULL", []uuid.UUID{parentID, childID}, orgID).
+		Count(&count)
+	if count != 2 {
+		return errors.New("one or more users not found in organization")
+	}
 	return r.db.WithContext(ctx).Create(&models.UserHierarchy{
 		ParentUserID: parentID,
 		ChildUserID:  childID,
 	}).Error
 }
 
-func (r *Repository) Delete(ctx context.Context, parentID, childID uuid.UUID) error {
+func (r *Repository) Delete(ctx context.Context, parentID, childID uuid.UUID, orgID uuid.UUID) error {
 	return r.db.WithContext(ctx).
-		Where("parent_user_id = ? AND child_user_id = ?", parentID, childID).
+		Where("parent_user_id = ? AND child_user_id = ? AND EXISTS (SELECT 1 FROM users WHERE id = ? AND organization_id = ?)", parentID, childID, parentID, orgID).
 		Delete(&models.UserHierarchy{}).Error
 }
 
-func (r *Repository) GetChildren(ctx context.Context, userID uuid.UUID) ([]models.User, error) {
+func (r *Repository) GetChildren(ctx context.Context, userID uuid.UUID, orgID uuid.UUID) ([]models.User, error) {
 	var users []models.User
 	err := r.db.WithContext(ctx).
 		Joins("JOIN user_hierarchy uh ON uh.child_user_id = users.id").
-		Where("uh.parent_user_id = ?", userID).
+		Where("uh.parent_user_id = ? AND users.organization_id = ?", userID, orgID).
 		Find(&users).Error
 	return users, err
 }
 
-func (r *Repository) GetParent(ctx context.Context, userID uuid.UUID) (models.User, error) {
+func (r *Repository) GetParent(ctx context.Context, userID uuid.UUID, orgID uuid.UUID) (models.User, error) {
 	var user models.User
 	err := r.db.WithContext(ctx).
 		Joins("JOIN user_hierarchy uh ON uh.parent_user_id = users.id").
-		Where("uh.child_user_id = ?", userID).
+		Where("uh.child_user_id = ? AND users.organization_id = ?", userID, orgID).
 		First(&user).Error
 	return user, err
 }
@@ -84,7 +92,8 @@ func (r *Repository) ListAll(ctx context.Context, page, size int, f HierarchyFil
 	var results []HierarchyDetail
 	offset := (page - 1) * size
 	err := base.
-		Select("p.id as parent_id, p.name as parent_name, p.email as parent_email, c.id as child_id, c.name as child_name, c.email as child_email").
+		Joins("JOIN organizations o ON o.id = p.organization_id").
+		Select("o.id as org_id, o.name as org_name, p.id as parent_id, p.name as parent_name, p.email as parent_email, c.id as child_id, c.name as child_name, c.email as child_email").
 		Order("p.name ASC, c.name ASC").
 		Limit(size).Offset(offset).
 		Scan(&results).Error

@@ -8,14 +8,14 @@ import (
 )
 
 // RegisterRoutes registers all user routes
-func RegisterRoutes(router *gin.Engine, handler *Handler) {
+func RegisterRoutes(router gin.IRouter, handler *Handler) {
 
 	// 🔓 Public route
 	router.POST("/users", handler.CreateUser)
 	
 	// 🔐 Protected routes
 	protected := router.Group("/users")
-	protected.Use(middleware.JWTAuth(os.Getenv("ACCESS_TOKEN_SECRET")))
+	protected.Use(middleware.JWTAuth(os.Getenv("ACCESS_TOKEN_SECRET")), middleware.RequireOrg())
 	{
 		protected.GET("", handler.ListUsers)
 		protected.GET("/:id", handler.GetUser)

@@ -16,20 +16,16 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) AssignRoles(ctx context.Context, userID uuid.UUID, roleIDs []uint) error {
-	return s.repo.AssignRoles(ctx, userID, roleIDs)
+func (s *Service) AssignRoles(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, roleIDs []uint) error {
+	return s.repo.AssignRoles(ctx, userID, orgID, roleIDs)
 }
 
-func (s *Service) RemoveRoles(ctx context.Context, userID uuid.UUID, roleIDs []uint) error {
-	return s.repo.RemoveRoles(ctx, userID, roleIDs)
+func (s *Service) RemoveRoles(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, roleIDs []uint) error {
+	return s.repo.RemoveRoles(ctx, userID, orgID, roleIDs)
 }
 
-func (s *Service) ListRoles(
-	ctx context.Context,
-	userID uuid.UUID,
-	p utils.Pagination,
-) ([]models.Role, error) {
-	return s.repo.ListRoles(ctx, userID, p.Page, p.Size)
+func (s *Service) ListRoles(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, p utils.Pagination) ([]models.Role, error) {
+	return s.repo.ListRoles(ctx, userID, orgID, p.Page, p.Size)
 }
 
 func (s *Service) ListAll(ctx context.Context, p utils.Pagination, f UserRoleFilter) ([]UserRoleDetail, int64, error) {

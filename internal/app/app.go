@@ -5,6 +5,8 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/moshfiq123456/ums-backend/internal/config"
 	"github.com/moshfiq123456/ums-backend/internal/middleware"
 	"gorm.io/gorm"
@@ -22,6 +24,7 @@ func NewServer(cfg *config.Config, db *gorm.DB) *Server {
 	router := gin.New()
     allowedOrigins := map[string]bool{
 		"http://localhost:3000": true,
+		"http://localhost:3001": true,
 		"http://localhost:5173": true,
 		"http://localhost:4200": true,
 	}
@@ -58,6 +61,9 @@ func (s *Server) Start(registerRoutes func(*gin.Engine, *gorm.DB)) {
     
     // Serve uploaded files
     s.router.Static("/uploads", "./uploads")
+
+    // Swagger UI
+    s.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
     // Register all routes
     registerRoutes(s.router, s.db)

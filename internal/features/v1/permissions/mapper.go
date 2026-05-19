@@ -5,10 +5,11 @@ import "github.com/moshfiq123456/ums-backend/internal/models"
 func ToResponse(p models.Permission) PermissionResponse {
 	return PermissionResponse{
 		ID:          p.ID,
+		OrgID:       p.OrganizationID.String(),
+		OrgName:     p.Organization.Name,
 		Code:        p.Code,
 		Name:        p.Name,
 		Description: p.Description,
-		Service:     p.Service,
 	}
 }
 

@@ -28,9 +28,7 @@ func NewHandler(s *Service) *Handler {
 	return &Handler{service: s}
 }
 
-// --------------------
-// LOGIN
-// --------------------
+// Login godoc
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -56,9 +54,7 @@ func (h *Handler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// --------------------
-// REFRESH
-// --------------------
+// Refresh godoc
 func (h *Handler) Refresh(c *gin.Context) {
 	cookie, err := c.Cookie(refreshTokenCookie)
 	if err != nil || cookie == "" {
@@ -83,9 +79,46 @@ func (h *Handler) Refresh(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"access_token": resp.AccessToken})
 }
 
-// --------------------
-// LOGOUT
-// --------------------
+// Guest godoc
+func (h *Handler) Guest(c *gin.Context) {
+	var req GuestRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := h.service.CreateGuestToken(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// Token godoc — OAuth2 password flow for Swagger UI
+func (h *Handler) Token(c *gin.Context) {
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+
+	if username == "" || password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password are required"})
+		return
+	}
+
+	resp, err := h.service.Login(c.Request.Context(), LoginRequest{Email: username, Password: password})
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": resp.AccessToken,
+		"token_type":   "bearer",
+	})
+}
+
+// Logout godoc
 func (h *Handler) Logout(c *gin.Context) {
 	cookie, err := c.Cookie(refreshTokenCookie)
 	if err != nil || cookie == "" {

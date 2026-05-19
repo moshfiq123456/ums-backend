@@ -11,6 +11,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const guestTokenTTL = 2 * time.Hour
+
 type Service struct {
 	repo *Repository
 }
@@ -123,6 +125,44 @@ func (s *Service) Logout(ctx context.Context, req LogoutRequest) error {
 	}
 
 	return s.repo.LogoutSession(ctx, claims.SessionID)
+}
+
+// -----------------------------
+// GUEST TOKEN
+// -----------------------------
+func (s *Service) CreateGuestToken(ctx context.Context, req GuestRequest) (GuestResponse, error) {
+	orgID, err := uuid.Parse(req.OrgID)
+	if err != nil {
+		return GuestResponse{}, err
+	}
+
+	org, err := s.repo.FindOrgByID(ctx, orgID)
+	if err != nil {
+		return GuestResponse{}, err
+	}
+
+	user, isNew, err := s.repo.FindOrCreateGuestUser(ctx, orgID, req.Email, req.Name)
+	if err != nil {
+		return GuestResponse{}, err
+	}
+
+	token, expiresAt, err := GenerateAccessToken(AccessTokenInput{
+		UserID:   user.ID,
+		OrgID:    orgID,
+		OrgSlug:  org.Slug,
+		UserType: "guest",
+		TTL:      guestTokenTTL,
+	})
+	if err != nil {
+		return GuestResponse{}, err
+	}
+
+	return GuestResponse{
+		AccessToken: token,
+		ExpiresAt:   expiresAt.Format(time.RFC3339),
+		UserID:      user.ID.String(),
+		IsNew:       isNew,
+	}, nil
 }
 
 // -----------------------------

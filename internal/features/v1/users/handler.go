@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/moshfiq123456/ums-backend/internal/constants"
 	"github.com/moshfiq123456/ums-backend/internal/middleware"
 	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
@@ -21,6 +22,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// CreateUser godoc
 func (h *Handler) CreateUser(c *gin.Context) {
 	var req CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -28,11 +30,12 @@ func (h *Handler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Get org from JWT (set by OrgContext middleware); fall back to default org for public registration
-	orgID, ok := middleware.GetOrgID(c)
-	if !ok {
-		// Public registration — use the default org or require X-Org-Slug header
-		orgID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	// Priority: body org_id → JWT org_id → default org
+	orgID := constants.DefaultOrgID
+	if req.OrgID != "" {
+		orgID = uuid.MustParse(req.OrgID)
+	} else if jwtOrgID, ok := middleware.GetOrgID(c); ok {
+		orgID = jwtOrgID
 	}
 
 	user, err := h.service.Create(c.Request.Context(), req, orgID)
@@ -48,6 +51,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, toResponse(user))
 }
 
+// UpdateUser godoc
 func (h *Handler) UpdateUser(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateUserRequest
@@ -71,15 +75,18 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 
 
 
+// ListUsers godoc
 func (h *Handler) ListUsers(c *gin.Context) {
 	var pagination utils.Pagination
 	var filter UserFilter
 	_ = c.ShouldBindQuery(&pagination)
 	_ = c.ShouldBindQuery(&filter)
 
-	// Scope by organization from JWT
-	if orgID, ok := middleware.GetOrgID(c); ok {
-		filter.OrgID = orgID.String()
+	// Priority: query param org_id → JWT org_id
+	if filter.OrgID == "" {
+		if orgID, ok := middleware.GetOrgID(c); ok {
+			filter.OrgID = orgID.String()
+		}
 	}
 
 	if pagination.Page < 0 || pagination.Size < 0 {
@@ -101,9 +108,15 @@ func (h *Handler) ListUsers(c *gin.Context) {
 }
 
 
+// GetUser godoc
 func (h *Handler) GetUser(c *gin.Context) {
 	id := c.Param("id")
-	user, err := h.service.GetByID(c.Request.Context(), id)
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
+		return
+	}
+	user, err := h.service.GetByID(c.Request.Context(), id, orgID.String())
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -111,6 +124,7 @@ func (h *Handler) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, toResponse(user))
 }
 
+// DeleteUser godoc
 func (h *Handler) DeleteUser(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.service.Delete(c.Request.Context(), id); err != nil {
@@ -120,6 +134,7 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "user deleted"})
 }
 
+// SetStatus godoc
 func (h *Handler) SetStatus(c *gin.Context) {
 	id := c.Param("id")
 	var req UpdateStatusRequest
@@ -136,7 +151,7 @@ func (h *Handler) SetStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "status updated"})
 }
 
-// PATCH /users/:id/password
+// ChangePassword godoc
 func (h *Handler) ChangePassword(c *gin.Context) {
 	id := c.Param("id")
 	var req ChangePasswordRequest
@@ -176,8 +191,14 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
+		return
+	}
+
 	// Fetch current user to get old avatar path
-	existing, _ := h.service.GetByID(c.Request.Context(), id)
+	existing, _ := h.service.GetByID(c.Request.Context(), id, orgID.String())
 
 	// Ensure upload directory exists
 	uploadDir := "./uploads/avatars"
@@ -215,8 +236,14 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 func (h *Handler) RemoveAvatar(c *gin.Context) {
 	id := c.Param("id")
 
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
+		return
+	}
+
 	// Fetch user to get the old file path
-	user, err := h.service.GetByID(c.Request.Context(), id)
+	user, err := h.service.GetByID(c.Request.Context(), id, orgID.String())
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return

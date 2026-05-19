@@ -4,6 +4,7 @@ package roles
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
 	"gorm.io/gorm"
 )
@@ -39,14 +40,17 @@ func (r *Repository) List(ctx context.Context, page, size int, f RoleFilter) ([]
 	}
 	q.Count(&total)
 
-	err := q.Order("created_at DESC").Limit(size).Offset(offset).Find(&roles).Error
+	err := q.Preload("Organization").Order("created_at DESC").Limit(size).Offset(offset).Find(&roles).Error
 	return roles, total, err
 }
 
 
-func (r *Repository) GetByID(ctx context.Context, id int64) (models.Role, error) {
+func (r *Repository) GetByID(ctx context.Context, id int64, orgID uuid.UUID) (models.Role, error) {
 	var role models.Role
-	err := r.db.WithContext(ctx).First(&role, id).Error
+	err := r.db.WithContext(ctx).
+		Preload("Organization").
+		Where("id = ? AND organization_id = ?", id, orgID).
+		First(&role).Error
 	return role, err
 }
 

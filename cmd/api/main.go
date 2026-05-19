@@ -1,11 +1,26 @@
+// @title           UMS Backend API
+// @version         1.0
+// @description     User Management System — centralized identity and access management.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   UMS Support
+// @contact.email  support@ums.com
+
+// @host      localhost:8080
+// @BasePath  /api/v1/ums
+
+// @securityDefinitions.oauth2.password OAuth2Password
+// @tokenUrl /api/v1/ums/auth/token
+
 package main
 
 import (
 	"fmt"
 	"log"
 
+	_ "github.com/moshfiq123456/ums-backend/docs"
 	"github.com/moshfiq123456/ums-backend/internal/app"
-	"github.com/moshfiq123456/ums-backend/internal/config" // <-- import your module router
+	"github.com/moshfiq123456/ums-backend/internal/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

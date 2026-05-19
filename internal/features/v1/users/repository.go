@@ -44,15 +44,16 @@ func (r *UserRepository) List(ctx context.Context, page, size int, f UserFilter)
 	}
 	q.Count(&total)
 
-	err := q.Preload("Roles").Order("created_at DESC").Limit(size).Offset(offset).Find(&users).Error
+	err := q.Preload("Roles").Preload("Organization").Order("created_at DESC").Limit(size).Offset(offset).Find(&users).Error
 	return users, total, err
 }
 
 // GET BY ID
-func (r *UserRepository) GetByID(ctx context.Context, id string) (models.User, error) {
+func (r *UserRepository) GetByID(ctx context.Context, id string, orgID string) (models.User, error) {
 	var user models.User
 	err := r.db.WithContext(ctx).
-		Where("id = ? AND deleted_at IS NULL", id).
+		Preload("Organization").
+		Where("id = ? AND organization_id = ? AND deleted_at IS NULL", id, orgID).
 		First(&user).Error
 	return user, err
 }

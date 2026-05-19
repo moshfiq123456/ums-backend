@@ -17,14 +17,16 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// GET /users/hierarchy
+// ListHierarchy godoc
 func (h *Handler) ListAll(c *gin.Context) {
 	var p utils.Pagination
 	var filter HierarchyFilter
 	_ = c.ShouldBindQuery(&p)
 	_ = c.ShouldBindQuery(&filter)
-	if orgID, ok := middleware.GetOrgID(c); ok {
-		filter.OrgID = orgID.String()
+	if filter.OrgID == "" {
+		if orgID, ok := middleware.GetOrgID(c); ok {
+			filter.OrgID = orgID.String()
+		}
 	}
 	p.Normalize()
 
@@ -40,11 +42,17 @@ func (h *Handler) ListAll(c *gin.Context) {
 	})
 }
 
-// POST /users/:parentId/children
+// AssignChild godoc
 func (h *Handler) AssignChild(c *gin.Context) {
 	parentID, err := uuid.Parse(c.Param("parentId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parent id"})
+		return
+	}
+
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
 		return
 	}
 
@@ -54,21 +62,15 @@ func (h *Handler) AssignChild(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.AssignChild(
-		c.Request.Context(),
-		parentID,
-		req.ChildUserID,
-	); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.service.AssignChild(c.Request.Context(), parentID, req.ChildUserID, orgID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Hierarchy created successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Hierarchy created successfully"})
 }
 
-// DELETE /users/:parentId/children/:childId
+// RemoveChild godoc
 func (h *Handler) RemoveChild(c *gin.Context) {
 	parentID, err := uuid.Parse(c.Param("parentId"))
 	if err != nil {
@@ -82,21 +84,21 @@ func (h *Handler) RemoveChild(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.RemoveChild(
-		c.Request.Context(),
-		parentID,
-		childID,
-	); err != nil {
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
+		return
+	}
+
+	if err := h.service.RemoveChild(c.Request.Context(), parentID, childID, orgID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Hierarchy removed successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Hierarchy removed successfully"})
 }
 
-// GET /users/:id/children
+// GetChildren godoc
 func (h *Handler) GetChildren(c *gin.Context) {
 	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -104,10 +106,13 @@ func (h *Handler) GetChildren(c *gin.Context) {
 		return
 	}
 
-	children, err := h.service.GetChildren(
-		c.Request.Context(),
-		userID,
-	)
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
+		return
+	}
+
+	children, err := h.service.GetChildren(c.Request.Context(), userID, orgID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -116,7 +121,7 @@ func (h *Handler) GetChildren(c *gin.Context) {
 	c.JSON(http.StatusOK, children)
 }
 
-// GET /users/:id/parent
+// GetParent godoc
 func (h *Handler) GetParent(c *gin.Context) {
 	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -124,10 +129,13 @@ func (h *Handler) GetParent(c *gin.Context) {
 		return
 	}
 
-	parent, err := h.service.GetParent(
-		c.Request.Context(),
-		userID,
-	)
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
+		return
+	}
+
+	parent, err := h.service.GetParent(c.Request.Context(), userID, orgID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -136,7 +144,7 @@ func (h *Handler) GetParent(c *gin.Context) {
 	c.JSON(http.StatusOK, parent)
 }
 
-// POST /users/hierarchy/check
+// CheckHierarchy godoc
 func (h *Handler) CheckHierarchy(c *gin.Context) {
 	var req CheckHierarchyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

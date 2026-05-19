@@ -7,9 +7,9 @@ import (
 	"github.com/moshfiq123456/ums-backend/internal/middleware"
 )
 
-func RegisterRoutes(router *gin.Engine, handler *Handler) {
+func RegisterRoutes(router gin.IRouter, handler *Handler) {
 	protected := router.Group("/permissions")
-	protected.Use(middleware.JWTAuth(os.Getenv("ACCESS_TOKEN_SECRET")))
+	protected.Use(middleware.JWTAuth(os.Getenv("ACCESS_TOKEN_SECRET")), middleware.RequireOrg())
 	{
 		protected.POST("", handler.Create)
 		protected.GET("", handler.List)

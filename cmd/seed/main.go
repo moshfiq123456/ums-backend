@@ -8,10 +8,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/moshfiq123456/ums-backend/internal/config"
+	"github.com/moshfiq123456/ums-backend/internal/constants"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+var defaultOrgID = constants.DefaultOrgID
 
 func hash(pw string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pw), 10)
@@ -39,7 +42,15 @@ func main() {
 	log.Println("✅ connected")
 
 	// ══════════════════════════════════════════════════════════════
-	// ROLES
+	// DEFAULT ORGANIZATION
+	// ══════════════════════════════════════════════════════════════
+	db.Exec(`INSERT INTO organizations (id,name,slug,is_active,plan,settings,created_at,updated_at)
+		VALUES (?,?,?,true,'free','{}',NOW(),NOW()) ON CONFLICT (id) DO NOTHING`,
+		defaultOrgID, "Default Organization", "default")
+	log.Println("  organization: default org seeded")
+
+	// ══════════════════════════════════════════════════════════════
+	// ROLES  (scoped to default org)
 	// ══════════════════════════════════════════════════════════════
 	type role struct {
 		name, code, desc string
@@ -55,9 +66,9 @@ func main() {
 		{"Guest", "guest", "Minimal temporary access", false},
 	}
 	for _, r := range roles {
-		db.Exec(`INSERT INTO roles (name,code,description,is_active,created_at,updated_at)
-			VALUES (?,?,?,?,NOW(),NOW()) ON CONFLICT (code) DO NOTHING`,
-			r.name, r.code, r.desc, r.active)
+		db.Exec(`INSERT INTO roles (organization_id,name,code,description,is_active,created_at,updated_at)
+			VALUES (?,?,?,?,?,NOW(),NOW()) ON CONFLICT DO NOTHING`,
+			defaultOrgID, r.name, r.code, r.desc, r.active)
 	}
 	log.Printf("  roles: %d seeded", len(roles))
 
@@ -99,9 +110,10 @@ func main() {
 		{"audit:export", "Export Audit Logs", "Download audit log exports"},
 	}
 	for _, p := range perms {
-		db.Exec(`INSERT INTO permissions (code,name,description,created_at,updated_at)
-			VALUES (?,?,?,NOW(),NOW()) ON CONFLICT (code) DO NOTHING`, p[0], p[1], p[2])
+		db.Exec(`INSERT INTO permissions (organization_id,code,name,description,created_at,updated_at)
+			VALUES (?,?,?,?,NOW(),NOW()) ON CONFLICT DO NOTHING`, defaultOrgID, p[0], p[1], p[2])
 	}
+
 	log.Printf("  permissions: %d seeded", len(perms))
 
 	// ══════════════════════════════════════════════════════════════
@@ -111,7 +123,8 @@ func main() {
 		for _, pc := range codes {
 			db.Exec(`INSERT INTO role_permissions (role_id,permission_id)
 				SELECT r.id,p.id FROM roles r, permissions p
-				WHERE r.code=? AND p.code=? ON CONFLICT DO NOTHING`, roleCode, pc)
+				WHERE r.organization_id=? AND r.code=? AND p.code=? ON CONFLICT DO NOTHING`,
+				defaultOrgID, roleCode, pc)
 		}
 	}
 
@@ -159,7 +172,7 @@ func main() {
 	log.Println("  role_permissions seeded")
 
 	// ══════════════════════════════════════════════════════════════
-	// USERS
+	// USERS  (all under default org)
 	// ══════════════════════════════════════════════════════════════
 	type seedUser struct {
 		name, email, password, phone, status string
@@ -194,15 +207,15 @@ func main() {
 
 	for _, u := range users {
 		createdAt := ago(u.createdAgo)
-		db.Exec(`INSERT INTO users (name,email,password_hash,phone,status,created_at,updated_at)
-			VALUES (?,?,?,?,?,?,?) ON CONFLICT (email) DO NOTHING`,
-			u.name, u.email, hash(u.password), u.phone, u.status, createdAt, createdAt)
+		db.Exec(`INSERT INTO users (organization_id,name,email,password_hash,phone,status,created_at,updated_at)
+			VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (organization_id, email) DO NOTHING`,
+			defaultOrgID, u.name, u.email, hash(u.password), u.phone, u.status, createdAt, createdAt)
 
 		for _, rc := range u.roles {
 			db.Exec(`INSERT INTO user_roles (user_id,role_id,assigned_at)
 				SELECT u.id,r.id,? FROM users u, roles r
-				WHERE u.email=? AND r.code=? ON CONFLICT DO NOTHING`,
-				createdAt.Add(time.Hour), u.email, rc)
+				WHERE u.email=? AND r.organization_id=? AND r.code=? ON CONFLICT DO NOTHING`,
+				createdAt.Add(time.Hour), u.email, defaultOrgID, rc)
 		}
 	}
 	log.Printf("  users: %d seeded", len(users))
@@ -212,13 +225,9 @@ func main() {
 	// ══════════════════════════════════════════════════════════════
 	type userPerm struct{ email, permCode string }
 	userPerms := []userPerm{
-		// Bob gets audit read even though he's just a viewer
 		{"bob@ums.com", "audit:read"},
-		// Charlie gets report generation
 		{"charlie@ums.com", "report:generate"},
-		// Sophie gets user:update on top of support_agent
 		{"sophie@ums.com", "user:update"},
-		// Grace gets user:read even with no role
 		{"grace@ums.com", "user:read"},
 		{"grace@ums.com", "role:read"},
 	}
@@ -342,6 +351,8 @@ func main() {
 	// ══════════════════════════════════════════════════════════════
 	log.Println("")
 	log.Println("✅ Seed complete!")
+	log.Println("")
+	log.Println("  Default Org ID:", defaultOrgID)
 	log.Println("")
 	log.Println("  Credentials:")
 	log.Println("  admin@ums.com    / Admin@123456   → super_admin")

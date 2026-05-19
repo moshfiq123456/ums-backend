@@ -17,14 +17,16 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// GET /users-permissions
+// ListAllUserPermissions godoc
 func (h *Handler) ListAll(c *gin.Context) {
 	var p utils.Pagination
 	var f UserPermissionFilter
 	_ = c.ShouldBindQuery(&p)
 	_ = c.ShouldBindQuery(&f)
-	if orgID, ok := middleware.GetOrgID(c); ok {
-		f.OrgID = orgID.String()
+	if f.OrgID == "" {
+		if orgID, ok := middleware.GetOrgID(c); ok {
+			f.OrgID = orgID.String()
+		}
 	}
 	p.Normalize()
 
@@ -40,11 +42,17 @@ func (h *Handler) ListAll(c *gin.Context) {
 	})
 }
 
-// POST /users/:id/permissions
+// AssignPermissions godoc
 func (h *Handler) AssignPermissions(c *gin.Context) {
 	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
 		return
 	}
 
@@ -54,25 +62,25 @@ func (h *Handler) AssignPermissions(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.AssignPermissions(
-		c.Request.Context(),
-		userID,
-		req.PermissionIDs,
-	); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.service.AssignPermissions(c.Request.Context(), userID, orgID, req.PermissionIDs); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Permissions assigned successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Permissions assigned successfully"})
 }
 
-// DELETE /users/:id/permissions
+// RemovePermissions godoc
 func (h *Handler) RemovePermissions(c *gin.Context) {
 	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
 		return
 	}
 
@@ -82,21 +90,15 @@ func (h *Handler) RemovePermissions(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.RemovePermissions(
-		c.Request.Context(),
-		userID,
-		req.PermissionIDs,
-	); err != nil {
+	if err := h.service.RemovePermissions(c.Request.Context(), userID, orgID, req.PermissionIDs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Permissions removed successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Permissions removed successfully"})
 }
 
-// GET /users/:id/permissions
+// ListUserPermissions godoc
 func (h *Handler) ListPermissions(c *gin.Context) {
 	var pagination utils.Pagination
 
@@ -117,9 +119,13 @@ func (h *Handler) ListPermissions(c *gin.Context) {
 	// 4️⃣ Parse user ID
 	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid user id",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
 		return
 	}
 
@@ -127,6 +133,7 @@ func (h *Handler) ListPermissions(c *gin.Context) {
 	perms, err := h.service.ListPermissions(
 		c.Request.Context(),
 		userID,
+		orgID,
 		pagination,
 	)
 	if err != nil {

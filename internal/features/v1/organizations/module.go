@@ -5,7 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterModule(router *gin.Engine, db *gorm.DB) {
+func RegisterModule(router gin.IRouter, db *gorm.DB) {
 	repo    := NewRepository(db)
 	service := NewService(repo)
 	handler := NewHandler(service)

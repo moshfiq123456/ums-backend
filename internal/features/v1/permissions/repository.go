@@ -3,6 +3,7 @@ package permissions
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/moshfiq123456/ums-backend/internal/models"
 	"gorm.io/gorm"
 )
@@ -25,22 +26,25 @@ func (r *Repository) List(ctx context.Context, page, size int, f PermissionFilte
 	offset := (page - 1) * size
 
 	q := r.db.WithContext(ctx).Model(&models.Permission{})
+	if f.OrgID != "" {
+		q = q.Where("organization_id = ?", f.OrgID)
+	}
 	if f.Search != "" {
 		like := "%" + f.Search + "%"
 		q = q.Where("name ILIKE ? OR code ILIKE ?", like, like)
 	}
-	if f.Service != "" {
-		q = q.Where("service = ?", f.Service)
-	}
 	q.Count(&total)
 
-	err := q.Order("created_at DESC").Limit(size).Offset(offset).Find(&perms).Error
+	err := q.Preload("Organization").Order("created_at DESC").Limit(size).Offset(offset).Find(&perms).Error
 	return perms, total, err
 }
 
-func (r *Repository) GetByID(ctx context.Context, id uint) (models.Permission, error) {
+func (r *Repository) GetByID(ctx context.Context, id uint, orgID uuid.UUID) (models.Permission, error) {
 	var p models.Permission
-	err := r.db.WithContext(ctx).First(&p, id).Error
+	err := r.db.WithContext(ctx).
+		Preload("Organization").
+		Where("id = ? AND organization_id = ?", id, orgID).
+		First(&p).Error
 	return p, err
 }
 
@@ -48,6 +52,8 @@ func (r *Repository) Update(ctx context.Context, p models.Permission) error {
 	return r.db.WithContext(ctx).Save(&p).Error
 }
 
-func (r *Repository) Delete(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&models.Permission{}, id).Error
+func (r *Repository) Delete(ctx context.Context, id uint, orgID uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Where("id = ? AND organization_id = ?", id, orgID).
+		Delete(&models.Permission{}).Error
 }

@@ -8,6 +8,8 @@ import (
 func toResponse(role models.Role) RoleResponse {
 	return RoleResponse{
 		ID:          role.ID,
+		OrgID:       role.OrganizationID.String(),
+		OrgName:     role.Organization.Name,
 		Name:        role.Name,
 		Code:        role.Code,
 		Description: role.Description,

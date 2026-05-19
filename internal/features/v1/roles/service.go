@@ -32,12 +32,12 @@ func (s *Service) List(ctx context.Context, p utils.Pagination, f RoleFilter) ([
 	return s.repo.List(ctx, p.Page, p.Size, f)
 }
 
-func (s *Service) GetByID(ctx context.Context, id int64) (models.Role, error) {
-	return s.repo.GetByID(ctx, id)
+func (s *Service) GetByID(ctx context.Context, id int64, orgID uuid.UUID) (models.Role, error) {
+	return s.repo.GetByID(ctx, id, orgID)
 }
 
-func (s *Service) Update(ctx context.Context, id int64, req UpdateRoleRequest) (models.Role, error) {
-	role, err := s.repo.GetByID(ctx, id)
+func (s *Service) Update(ctx context.Context, id int64, req UpdateRoleRequest, orgID uuid.UUID) (models.Role, error) {
+	role, err := s.repo.GetByID(ctx, id, orgID)
 	if err != nil {
 		return role, err
 	}

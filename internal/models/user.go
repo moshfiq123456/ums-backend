@@ -9,9 +9,9 @@ import (
 
 type User struct {
 	ID             uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	OrganizationID uuid.UUID      `gorm:"type:uuid;not null;index"`
+	OrganizationID uuid.UUID      `gorm:"type:uuid;not null;index;uniqueIndex:users_org_email_unique"`
 	Name           string         `gorm:"size:100;not null"`
-	Email          string         `gorm:"size:150;not null"`
+	Email          string         `gorm:"size:150;not null;uniqueIndex:users_org_email_unique"`
 	PasswordHash   string         `gorm:"not null"`
 	Phone          *string        `gorm:"size:20"`
 	AvatarURL      *string        `gorm:"size:500"`

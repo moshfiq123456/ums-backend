@@ -11,6 +11,7 @@ func toResponse(user models.User) UserResponse {
 	return UserResponse{
 		ID:        user.ID.String(),
 		OrgID:     user.OrganizationID.String(),
+		OrgName:   user.Organization.Name,
 		Name:      user.Name,
 		Email:     user.Email,
 		Phone:     user.Phone,

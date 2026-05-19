@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/moshfiq123456/ums-backend/internal/constants"
 	"github.com/moshfiq123456/ums-backend/internal/middleware"
 	"github.com/moshfiq123456/ums-backend/internal/utils"
 )
@@ -17,7 +19,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// POST /roles
+// CreateRole godoc
 func (h *Handler) Create(c *gin.Context) {
 	var req CreateRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -25,7 +27,14 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	orgID, _ := middleware.GetOrgID(c)
+	// Priority: body org_id → JWT org_id → default org
+	orgID := constants.DefaultOrgID
+	if req.OrgID != "" {
+		orgID = uuid.MustParse(req.OrgID)
+	} else if jwtOrgID, ok := middleware.GetOrgID(c); ok {
+		orgID = jwtOrgID
+	}
+
 	role, err := h.service.Create(c.Request.Context(), req, orgID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -35,7 +44,7 @@ func (h *Handler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, toResponse(role))
 }
 
-// GET /roles
+// ListRoles godoc
 func (h *Handler) List(c *gin.Context) {
 	var pagination utils.Pagination
 	var filter RoleFilter
@@ -64,7 +73,7 @@ func (h *Handler) List(c *gin.Context) {
 	})
 }
 
-// GET /roles/:id
+// GetRole godoc
 func (h *Handler) Get(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("roleId"), 10, 64)
 	if err != nil {
@@ -72,20 +81,32 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 
-	role, err := h.service.GetByID(c.Request.Context(), id)
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
+		return
+	}
+
+	role, err := h.service.GetByID(c.Request.Context(), id, orgID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, toResponse(role))
 }
 
-// PUT /roles/:id
+// UpdateRole godoc
 func (h *Handler) Update(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("roleId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role id"})
+		return
+	}
+
+	orgID, ok := middleware.GetOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "organization context required"})
 		return
 	}
 
@@ -95,7 +116,7 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-	role, err := h.service.Update(c.Request.Context(), id, req)
+	role, err := h.service.Update(c.Request.Context(), id, req, orgID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -104,7 +125,7 @@ func (h *Handler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, toResponse(role))
 }
 
-// PATCH /roles/:id/status
+// SetRoleStatus godoc
 func (h *Handler) SetStatus(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("roleId"), 10, 64)
 	if err != nil {
@@ -132,7 +153,7 @@ func (h *Handler) SetStatus(c *gin.Context) {
 	})
 }
 
-// DELETE /roles/:id
+// DeleteRole godoc
 func (h *Handler) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("roleId"), 10, 64)
 	if err != nil {

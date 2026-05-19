@@ -16,7 +16,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// POST /roles/:roleId/permissions
+// AssignPermissionToRole godoc
 func (h *Handler) Assign(c *gin.Context) {
 	roleID, err := strconv.ParseUint(c.Param("roleId"), 10, 64)
 	if err != nil {
@@ -40,7 +40,7 @@ func (h *Handler) Assign(c *gin.Context) {
 	})
 }
 
-// POST /roles/:roleId/permissions/bulk
+// BulkAssignPermissionsToRole godoc
 func (h *Handler) BulkAssign(c *gin.Context) {
 	roleID, err := strconv.ParseUint(c.Param("roleId"), 10, 64)
 	if err != nil {
@@ -68,7 +68,7 @@ func (h *Handler) BulkAssign(c *gin.Context) {
 	})
 }
 
-// DELETE /roles/:roleId/permissions/:permissionId
+// RemovePermissionFromRole godoc
 func (h *Handler) Remove(c *gin.Context) {
 	roleID, err := strconv.ParseUint(c.Param("roleId"), 10, 64)
 	if err != nil {
@@ -96,7 +96,7 @@ func (h *Handler) Remove(c *gin.Context) {
 	})
 }
 
-// GET /roles/:roleId/permissions
+// ListRolePermissions godoc
 func (h *Handler) List(c *gin.Context) {
 	var pagination utils.Pagination
 

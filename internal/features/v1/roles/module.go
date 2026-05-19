@@ -6,7 +6,7 @@ import (
 )
 
 // RegisterModule wires repository → service → handler → routes
-func RegisterModule(router *gin.Engine, db *gorm.DB) {
+func RegisterModule(router gin.IRouter, db *gorm.DB) {
 	// 1️⃣ Repository
 	repo := NewRepository(db)
 

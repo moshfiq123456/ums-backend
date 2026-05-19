@@ -1,7 +1,7 @@
 package user_permissions
 
 type UserPermissionFilter struct {
-	OrgID        string `form:"-"`
+	OrgID        string `form:"org_id"`
 	Search       string `form:"search"`
 	UserID       string `form:"user_id"`
 	PermissionID string `form:"permission_id"`

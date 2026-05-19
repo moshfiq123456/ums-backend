@@ -42,13 +42,18 @@ type AccessTokenInput struct {
 	OrgID    uuid.UUID
 	OrgSlug  string
 	UserType string
+	TTL      time.Duration // 0 = use ACCESS_TOKEN_TTL from env
 }
 
 // GenerateAccessToken creates a short-lived JWT access token
 func GenerateAccessToken(in AccessTokenInput) (string, time.Time, error) {
-	ttl, err := time.ParseDuration(os.Getenv("ACCESS_TOKEN_TTL"))
-	if err != nil {
-		return "", time.Time{}, err
+	ttl := in.TTL
+	if ttl == 0 {
+		var err error
+		ttl, err = time.ParseDuration(os.Getenv("ACCESS_TOKEN_TTL"))
+		if err != nil {
+			return "", time.Time{}, err
+		}
 	}
 
 	expiresAt := time.Now().Add(ttl)

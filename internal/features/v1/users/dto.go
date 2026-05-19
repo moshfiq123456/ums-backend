@@ -3,12 +3,13 @@ package users
 import "time"
 
 type UserFilter struct {
-	OrgID  string `form:"-"` // set programmatically from JWT, not from query param
+	OrgID  string `form:"org_id"`
 	Search string `form:"search"`
 	Status string `form:"status"`
 }
 
 type CreateUserRequest struct {
+	OrgID    string  `json:"org_id"   binding:"omitempty,uuid"`
 	Name     string  `json:"name"     binding:"required,min=2,max=50"`
 	Email    string  `json:"email"    binding:"required,email"`
 	Password string  `json:"password" binding:"required,min=8,max=32"`
@@ -33,6 +34,7 @@ type ChangePasswordRequest struct {
 type UserResponse struct {
 	ID        string     `json:"id"`
 	OrgID     string     `json:"org_id"`
+	OrgName   string     `json:"org_name"`
 	Name      string     `json:"name"`
 	Email     string     `json:"email"`
 	Phone     *string    `json:"phone,omitempty"`

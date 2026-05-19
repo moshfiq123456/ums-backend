@@ -8,8 +8,9 @@ type RoleFilter struct {
 }
 
 type CreateRoleRequest struct {
-	Name        string `json:"name" validate:"required,min=3"`
-	Code        string `json:"code" validate:"required,min=3"`
+	OrgID       string `json:"org_id"       binding:"omitempty,uuid"`
+	Name        string `json:"name"         validate:"required,min=3"`
+	Code        string `json:"code"         validate:"required,min=3"`
 	Description string `json:"description"`
 }
 
@@ -24,6 +25,8 @@ type UpdateRoleStatusRequest struct {
 
 type RoleResponse struct {
 	ID          int64  `json:"id"`
+	OrgID       string `json:"org_id"`
+	OrgName     string `json:"org_name"`
 	Name        string `json:"name"`
 	Code        string `json:"code"`
 	Description string `json:"description"`

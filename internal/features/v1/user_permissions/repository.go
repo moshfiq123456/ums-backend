@@ -2,6 +2,7 @@ package user_permissions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,7 +19,23 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) AssignPermissions(ctx context.Context, userID uuid.UUID, permissionIDs []uint) error {
+func (r *Repository) AssignPermissions(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, permissionIDs []uint) error {
+	var userCount int64
+	r.db.WithContext(ctx).Model(&models.User{}).
+		Where("id = ? AND organization_id = ? AND deleted_at IS NULL", userID, orgID).
+		Count(&userCount)
+	if userCount == 0 {
+		return errors.New("user not found in organization")
+	}
+
+	var validCount int64
+	r.db.WithContext(ctx).Model(&models.Permission{}).
+		Where("id IN ? AND organization_id = ?", permissionIDs, orgID).
+		Count(&validCount)
+	if int(validCount) != len(permissionIDs) {
+		return errors.New("one or more permissions not found in organization")
+	}
+
 	for _, pid := range permissionIDs {
 		if err := r.db.WithContext(ctx).FirstOrCreate(&models.UserPermission{}, models.UserPermission{
 			UserID:       userID,
@@ -31,28 +48,23 @@ func (r *Repository) AssignPermissions(ctx context.Context, userID uuid.UUID, pe
 	return nil
 }
 
-func (r *Repository) RemovePermissions(ctx context.Context, userID uuid.UUID, permissionIDs []uint) error {
+func (r *Repository) RemovePermissions(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, permissionIDs []uint) error {
 	return r.db.WithContext(ctx).
-		Where("user_id = ? AND permission_id IN ?", userID, permissionIDs).
+		Where("user_id = ? AND permission_id IN ? AND EXISTS (SELECT 1 FROM users WHERE id = ? AND organization_id = ?)", userID, permissionIDs, userID, orgID).
 		Delete(&models.UserPermission{}).Error
 }
 
-func (r *Repository) ListPermissions(
-	ctx context.Context,
-	userID uuid.UUID,
-	page, size int,
-) ([]models.Permission, error) {
-
+func (r *Repository) ListPermissions(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, page, size int) ([]models.Permission, error) {
 	var perms []models.Permission
 	offset := (page - 1) * size
 
 	err := r.db.WithContext(ctx).
 		Model(&models.Permission{}).
 		Joins("JOIN user_permissions up ON up.permission_id = permissions.id").
-		Where("up.user_id = ?", userID).
+		Joins("JOIN users u ON u.id = up.user_id").
+		Where("up.user_id = ? AND u.organization_id = ?", userID, orgID).
 		Order("permissions.created_at DESC").
-		Limit(size).
-		Offset(offset).
+		Limit(size).Offset(offset).
 		Find(&perms).Error
 
 	return perms, err

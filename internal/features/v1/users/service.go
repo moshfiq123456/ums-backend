@@ -69,8 +69,8 @@ func (s *Service) List(ctx context.Context, p utils.Pagination, f UserFilter) ([
 }
 
 // GET BY ID
-func (s *Service) GetByID(ctx context.Context, id string) (models.User, error) {
-	return s.repo.GetByID(ctx, id)
+func (s *Service) GetByID(ctx context.Context, id string, orgID string) (models.User, error) {
+	return s.repo.GetByID(ctx, id, orgID)
 }
 
 // DELETE
